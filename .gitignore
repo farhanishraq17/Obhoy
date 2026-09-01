@@ -1,0 +1,31 @@
+# Generated crypto material. These contain PRIVATE KEYS -- never commit them.
+# Regenerate with `./obhoy.sh fabric up`.
+/organizations/
+/channel-artifacts/
+
+# Go
+/chaincode/obhoycc/vendor/
+*.exe
+*.test
+*.out
+
+# Node
+node_modules/
+npm-debug.log*
+.env
+.env.local
+
+# Hardhat
+/anchor/artifacts/
+/anchor/cache/
+/anchor/typechain-types/
+
+# Editors and platforms
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local scratch
+/tmp/
+*.log

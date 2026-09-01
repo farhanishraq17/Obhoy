@@ -1,0 +1,19 @@
+{
+  "name": "obhoy-anchor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Public anchoring for Obhoy: one Merkle root per settlement period, committed to an EVM chain.",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "anchor:local": "hardhat run scripts/anchor.js --network localhost",
+    "deploy:amoy": "hardhat run scripts/deploy.js --network amoy",
+    "anchor:amoy": "hardhat run scripts/anchor.js --network amoy"
+  },
+  "devDependencies": {
+    "hardhat": "^2.22.15",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0"
+  }
+}

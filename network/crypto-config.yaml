@@ -1,0 +1,117 @@
+# Crypto material for the demonstration network.
+#
+# Five ordering nodes, each in its OWN organisation, because the claim in the
+# whitepaper is institutional spread rather than five processes: O1 the
+# regulator, O2 and O3 participating insurers, O4 the aggregator consortium,
+# O5 an independent academic node at a public university. Five orderers in one
+# MSP would look identical in `docker ps` and would mean nothing -- one
+# organisation would still hold the whole ordering service.
+#
+# Raft is crash-fault tolerant, not Byzantine. Spreading the nodes across
+# classes bounds who can stall the service; it does not make a malicious
+# ordering majority harmless, and nothing in this file claims otherwise.
+#
+# cryptogen is used here rather than Fabric CA. It is the right trade for a
+# prototype -- one command, reproducible, no CA to operate -- and it is also a
+# real limitation: there is no registration, no enrolment and no certificate
+# revocation list. See docs/LIMITATIONS.md.
+
+OrdererOrgs:
+  - Name: OrdererIDRA
+    Domain: idra.obhoy.local
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer1
+
+  - Name: OrdererInsurerA
+    Domain: insurera.obhoy.local
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer2
+
+  - Name: OrdererInsurerB
+    Domain: insurerb.obhoy.local
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer3
+
+  - Name: OrdererAggregator
+    Domain: aggregator.obhoy.local
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer4
+
+  - Name: OrdererAcademic
+    Domain: academic.obhoy.local
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer5
+
+PeerOrgs:
+  # The provider association. Individual upazila hospitals connect through this
+  # peer or a hosted gateway: making every facility run its own peer would block
+  # adoption and add no security.
+  - Name: Provider
+    Domain: provider.obhoy.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 2
+
+  # Independent clinicians and diagnostic centres.
+  - Name: Clinical
+    Domain: clinical.obhoy.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 2
+
+  # The MFI/NGO aggregator, which enrols policyholders and whose field agents
+  # attest at the bedside.
+  - Name: Field
+    Domain: field.obhoy.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 2
+
+  - Name: InsurerA
+    Domain: insurera.obhoy.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 2
+
+  # A competitor. It exists in this network so the cross-insurer duplicate
+  # refusal is a refusal between two organisations that genuinely cannot read
+  # each other's private data, rather than a refusal inside one.
+  - Name: InsurerB
+    Domain: insurerb.obhoy.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 2
+
+  # IDRA. A first-class network member with a validating copy, not an outside
+  # inspector receiving periodic reports.
+  - Name: Regulator
+    Domain: regulator.obhoy.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 2
+
+  # The independent academic auditor. Reads totals on the audit channel only.
+  - Name: Academic
+    Domain: academic.obhoy.local
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 2

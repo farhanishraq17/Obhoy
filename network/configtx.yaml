@@ -1,0 +1,356 @@
+# Channel configuration for the Obhoy network.
+#
+# Two things in this file are load-bearing claims from the whitepaper rather
+# than boilerplate, and both are easy to lose in a copy-paste:
+#
+#   1. The ENDORSEMENT POLICY on the main channel. `OutOf(2, Provider, Clinical,
+#      Field)` is Mechanism 2 -- the multi-class attestation quorum -- expressed
+#      as a protocol rule rather than as application code that could be bypassed.
+#      If this is ever softened to MAJORITY Endorsement, the quorum stops being
+#      enforced by the network and the whole design becomes a convention.
+#
+#   2. The CHANNEL SPLIT. `obhoy-main` carries policy credentials, the event
+#      registry and settlement state. `obhoy-audit` carries transparency
+#      aggregates only, and the insurers are not members of it. That is how the
+#      regulator and the academic auditor read continuously without seeing
+#      commercial detail.
+#
+# The non-payee half of Mechanism 2 is runtime-dependent -- which class is the
+# payee depends on the event -- so it cannot live here. It is enforced in
+# closeEvent, and the invariant test suite covers it.
+
+################################################################################
+Organizations:
+
+  - &OrdererIDRA
+    Name: OrdererIDRAMSP
+    ID: OrdererIDRAMSP
+    MSPDir: ../organizations/ordererOrganizations/idra.obhoy.local/msp
+    Policies:
+      Readers:    { Type: Signature, Rule: "OR('OrdererIDRAMSP.member')" }
+      Writers:    { Type: Signature, Rule: "OR('OrdererIDRAMSP.member')" }
+      Admins:     { Type: Signature, Rule: "OR('OrdererIDRAMSP.admin')" }
+    OrdererEndpoints:
+      - orderer1.idra.obhoy.local:7050
+
+  - &OrdererInsurerA
+    Name: OrdererInsurerAMSP
+    ID: OrdererInsurerAMSP
+    MSPDir: ../organizations/ordererOrganizations/insurera.obhoy.local/msp
+    Policies:
+      Readers:    { Type: Signature, Rule: "OR('OrdererInsurerAMSP.member')" }
+      Writers:    { Type: Signature, Rule: "OR('OrdererInsurerAMSP.member')" }
+      Admins:     { Type: Signature, Rule: "OR('OrdererInsurerAMSP.admin')" }
+    OrdererEndpoints:
+      - orderer2.insurera.obhoy.local:7050
+
+  - &OrdererInsurerB
+    Name: OrdererInsurerBMSP
+    ID: OrdererInsurerBMSP
+    MSPDir: ../organizations/ordererOrganizations/insurerb.obhoy.local/msp
+    Policies:
+      Readers:    { Type: Signature, Rule: "OR('OrdererInsurerBMSP.member')" }
+      Writers:    { Type: Signature, Rule: "OR('OrdererInsurerBMSP.member')" }
+      Admins:     { Type: Signature, Rule: "OR('OrdererInsurerBMSP.admin')" }
+    OrdererEndpoints:
+      - orderer3.insurerb.obhoy.local:7050
+
+  - &OrdererAggregator
+    Name: OrdererAggregatorMSP
+    ID: OrdererAggregatorMSP
+    MSPDir: ../organizations/ordererOrganizations/aggregator.obhoy.local/msp
+    Policies:
+      Readers:    { Type: Signature, Rule: "OR('OrdererAggregatorMSP.member')" }
+      Writers:    { Type: Signature, Rule: "OR('OrdererAggregatorMSP.member')" }
+      Admins:     { Type: Signature, Rule: "OR('OrdererAggregatorMSP.admin')" }
+    OrdererEndpoints:
+      - orderer4.aggregator.obhoy.local:7050
+
+  - &OrdererAcademic
+    Name: OrdererAcademicMSP
+    ID: OrdererAcademicMSP
+    MSPDir: ../organizations/ordererOrganizations/academic.obhoy.local/msp
+    Policies:
+      Readers:    { Type: Signature, Rule: "OR('OrdererAcademicMSP.member')" }
+      Writers:    { Type: Signature, Rule: "OR('OrdererAcademicMSP.member')" }
+      Admins:     { Type: Signature, Rule: "OR('OrdererAcademicMSP.admin')" }
+    OrdererEndpoints:
+      - orderer5.academic.obhoy.local:7050
+
+  # -------------------------------------------------------------- peer orgs
+  #
+  # The MSP identifiers here are the SAME strings the chaincode maps to
+  # stakeholder classes in contracts/common.go. Renaming one without renaming
+  # the other silently removes that organisation's ability to act.
+
+  - &Provider
+    Name: ProviderMSP
+    ID: ProviderMSP
+    MSPDir: ../organizations/peerOrganizations/provider.obhoy.local/msp
+    Policies:
+      Readers:    { Type: Signature, Rule: "OR('ProviderMSP.admin', 'ProviderMSP.peer', 'ProviderMSP.client')" }
+      Writers:    { Type: Signature, Rule: "OR('ProviderMSP.admin', 'ProviderMSP.client')" }
+      Admins:     { Type: Signature, Rule: "OR('ProviderMSP.admin')" }
+      Endorsement: { Type: Signature, Rule: "OR('ProviderMSP.peer')" }
+
+  - &Clinical
+    Name: ClinicalMSP
+    ID: ClinicalMSP
+    MSPDir: ../organizations/peerOrganizations/clinical.obhoy.local/msp
+    Policies:
+      Readers:    { Type: Signature, Rule: "OR('ClinicalMSP.admin', 'ClinicalMSP.peer', 'ClinicalMSP.client')" }
+      Writers:    { Type: Signature, Rule: "OR('ClinicalMSP.admin', 'ClinicalMSP.client')" }
+      Admins:     { Type: Signature, Rule: "OR('ClinicalMSP.admin')" }
+      Endorsement: { Type: Signature, Rule: "OR('ClinicalMSP.peer')" }
+
+  - &Field
+    Name: FieldMSP
+    ID: FieldMSP
+    MSPDir: ../organizations/peerOrganizations/field.obhoy.local/msp
+    Policies:
+      Readers:    { Type: Signature, Rule: "OR('FieldMSP.admin', 'FieldMSP.peer', 'FieldMSP.client')" }
+      Writers:    { Type: Signature, Rule: "OR('FieldMSP.admin', 'FieldMSP.client')" }
+      Admins:     { Type: Signature, Rule: "OR('FieldMSP.admin')" }
+      Endorsement: { Type: Signature, Rule: "OR('FieldMSP.peer')" }
+
+  - &InsurerA
+    Name: InsurerAMSP
+    ID: InsurerAMSP
+    MSPDir: ../organizations/peerOrganizations/insurera.obhoy.local/msp
+    Policies:
+      Readers:    { Type: Signature, Rule: "OR('InsurerAMSP.admin', 'InsurerAMSP.peer', 'InsurerAMSP.client')" }
+      Writers:    { Type: Signature, Rule: "OR('InsurerAMSP.admin', 'InsurerAMSP.client')" }
+      Admins:     { Type: Signature, Rule: "OR('InsurerAMSP.admin')" }
+      Endorsement: { Type: Signature, Rule: "OR('InsurerAMSP.peer')" }
+
+  - &InsurerB
+    Name: InsurerBMSP
+    ID: InsurerBMSP
+    MSPDir: ../organizations/peerOrganizations/insurerb.obhoy.local/msp
+    Policies:
+      Readers:    { Type: Signature, Rule: "OR('InsurerBMSP.admin', 'InsurerBMSP.peer', 'InsurerBMSP.client')" }
+      Writers:    { Type: Signature, Rule: "OR('InsurerBMSP.admin', 'InsurerBMSP.client')" }
+      Admins:     { Type: Signature, Rule: "OR('InsurerBMSP.admin')" }
+      Endorsement: { Type: Signature, Rule: "OR('InsurerBMSP.peer')" }
+
+  - &Regulator
+    Name: RegulatorMSP
+    ID: RegulatorMSP
+    MSPDir: ../organizations/peerOrganizations/regulator.obhoy.local/msp
+    Policies:
+      Readers:    { Type: Signature, Rule: "OR('RegulatorMSP.admin', 'RegulatorMSP.peer', 'RegulatorMSP.client')" }
+      Writers:    { Type: Signature, Rule: "OR('RegulatorMSP.admin', 'RegulatorMSP.client')" }
+      Admins:     { Type: Signature, Rule: "OR('RegulatorMSP.admin')" }
+      Endorsement: { Type: Signature, Rule: "OR('RegulatorMSP.peer')" }
+
+  - &Academic
+    Name: AcademicMSP
+    ID: AcademicMSP
+    MSPDir: ../organizations/peerOrganizations/academic.obhoy.local/msp
+    Policies:
+      # The academic node reads. It does not write to the main channel at all,
+      # which is why its Writers rule names only its admin: the audit channel
+      # is where it belongs, and even there it reads totals.
+      Readers:    { Type: Signature, Rule: "OR('AcademicMSP.admin', 'AcademicMSP.peer', 'AcademicMSP.client')" }
+      Writers:    { Type: Signature, Rule: "OR('AcademicMSP.admin')" }
+      Admins:     { Type: Signature, Rule: "OR('AcademicMSP.admin')" }
+      Endorsement: { Type: Signature, Rule: "OR('AcademicMSP.peer')" }
+
+################################################################################
+Capabilities:
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_5: true
+
+################################################################################
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    Readers:     { Type: ImplicitMeta, Rule: "ANY Readers" }
+    Writers:     { Type: ImplicitMeta, Rule: "ANY Writers" }
+    Admins:      { Type: ImplicitMeta, Rule: "MAJORITY Admins" }
+    LifecycleEndorsement: { Type: ImplicitMeta, Rule: "MAJORITY Endorsement" }
+
+    # ------------------------------------------------------------------------
+    # MECHANISM 2, AT PROTOCOL LEVEL.
+    #
+    # Two of the three attesting classes must endorse, AND the paying insurer
+    # must endorse as payer. The insurer's signature is NOT a third attesting
+    # class: it is the party authorising the money.
+    #
+    # `OutOf` over a signature policy is written here as the equivalent
+    # ImplicitMeta is not expressive enough -- ImplicitMeta counts organisations
+    # in a group, and this needs a named subset.
+    # ------------------------------------------------------------------------
+    Endorsement:
+      Type: Signature
+      Rule: "AND(OutOf(2, 'ProviderMSP.peer', 'ClinicalMSP.peer', 'FieldMSP.peer'), OutOf(1, 'InsurerAMSP.peer', 'InsurerBMSP.peer'))"
+
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+################################################################################
+Orderer: &OrdererDefaults
+  OrdererType: etcdraft
+  Addresses:
+    - orderer1.idra.obhoy.local:7050
+    - orderer2.insurera.obhoy.local:7050
+    - orderer3.insurerb.obhoy.local:7050
+    - orderer4.aggregator.obhoy.local:7050
+    - orderer5.academic.obhoy.local:7050
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Organizations:
+  Policies:
+    Readers:         { Type: ImplicitMeta, Rule: "ANY Readers" }
+    Writers:         { Type: ImplicitMeta, Rule: "ANY Writers" }
+    Admins:          { Type: ImplicitMeta, Rule: "MAJORITY Admins" }
+    BlockValidation: { Type: ImplicitMeta, Rule: "ANY Writers" }
+  EtcdRaft:
+    Consenters:
+      - Host: orderer1.idra.obhoy.local
+        Port: 7050
+        ClientTLSCert: ../organizations/ordererOrganizations/idra.obhoy.local/orderers/orderer1.idra.obhoy.local/tls/server.crt
+        ServerTLSCert: ../organizations/ordererOrganizations/idra.obhoy.local/orderers/orderer1.idra.obhoy.local/tls/server.crt
+      - Host: orderer2.insurera.obhoy.local
+        Port: 7050
+        ClientTLSCert: ../organizations/ordererOrganizations/insurera.obhoy.local/orderers/orderer2.insurera.obhoy.local/tls/server.crt
+        ServerTLSCert: ../organizations/ordererOrganizations/insurera.obhoy.local/orderers/orderer2.insurera.obhoy.local/tls/server.crt
+      - Host: orderer3.insurerb.obhoy.local
+        Port: 7050
+        ClientTLSCert: ../organizations/ordererOrganizations/insurerb.obhoy.local/orderers/orderer3.insurerb.obhoy.local/tls/server.crt
+        ServerTLSCert: ../organizations/ordererOrganizations/insurerb.obhoy.local/orderers/orderer3.insurerb.obhoy.local/tls/server.crt
+      - Host: orderer4.aggregator.obhoy.local
+        Port: 7050
+        ClientTLSCert: ../organizations/ordererOrganizations/aggregator.obhoy.local/orderers/orderer4.aggregator.obhoy.local/tls/server.crt
+        ServerTLSCert: ../organizations/ordererOrganizations/aggregator.obhoy.local/orderers/orderer4.aggregator.obhoy.local/tls/server.crt
+      - Host: orderer5.academic.obhoy.local
+        Port: 7050
+        ClientTLSCert: ../organizations/ordererOrganizations/academic.obhoy.local/orderers/orderer5.academic.obhoy.local/tls/server.crt
+        ServerTLSCert: ../organizations/ordererOrganizations/academic.obhoy.local/orderers/orderer5.academic.obhoy.local/tls/server.crt
+
+################################################################################
+Channel: &ChannelDefaults
+  Policies:
+    Readers: { Type: ImplicitMeta, Rule: "ANY Readers" }
+    Writers: { Type: ImplicitMeta, Rule: "ANY Writers" }
+    Admins:  { Type: ImplicitMeta, Rule: "MAJORITY Admins" }
+  Capabilities:
+    <<: *ChannelCapabilities
+
+################################################################################
+Profiles:
+
+  # ---------------------------------------------------------------------------
+  # obhoy-main: policy credentials, the event registry, settlement state.
+  # Private data collections inside it separate per-insurer detail -- see
+  # network/collections.json.
+  # ---------------------------------------------------------------------------
+  ObhoyMainChannel:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      Organizations:
+        - *OrdererIDRA
+        - *OrdererInsurerA
+        - *OrdererInsurerB
+        - *OrdererAggregator
+        - *OrdererAcademic
+      Capabilities: *OrdererCapabilities
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *Provider
+        - *Clinical
+        - *Field
+        - *InsurerA
+        - *InsurerB
+        - *Regulator
+        - *Academic
+
+  # ---------------------------------------------------------------------------
+  # obhoy-audit: transparency aggregates ONLY.
+  #
+  # The insurers are deliberately absent. The regulator and the academic auditor
+  # read this channel continuously; there is nothing commercial on it to see,
+  # and an insurer cannot influence what it says.
+  # ---------------------------------------------------------------------------
+  ObhoyAuditChannel:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      Organizations:
+        - *OrdererIDRA
+        - *OrdererAcademic
+      Capabilities: *OrdererCapabilities
+      EtcdRaft:
+        Consenters:
+          - Host: orderer1.idra.obhoy.local
+            Port: 7050
+            ClientTLSCert: ../organizations/ordererOrganizations/idra.obhoy.local/orderers/orderer1.idra.obhoy.local/tls/server.crt
+            ServerTLSCert: ../organizations/ordererOrganizations/idra.obhoy.local/orderers/orderer1.idra.obhoy.local/tls/server.crt
+          - Host: orderer5.academic.obhoy.local
+            Port: 7050
+            ClientTLSCert: ../organizations/ordererOrganizations/academic.obhoy.local/orderers/orderer5.academic.obhoy.local/tls/server.crt
+            ServerTLSCert: ../organizations/ordererOrganizations/academic.obhoy.local/orderers/orderer5.academic.obhoy.local/tls/server.crt
+      Addresses:
+        - orderer1.idra.obhoy.local:7050
+        - orderer5.academic.obhoy.local:7050
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *Regulator
+        - *Academic
+        - *Provider
+      Policies:
+        Readers:     { Type: ImplicitMeta, Rule: "ANY Readers" }
+        Writers:     { Type: ImplicitMeta, Rule: "ANY Writers" }
+        Admins:      { Type: ImplicitMeta, Rule: "MAJORITY Admins" }
+        LifecycleEndorsement: { Type: ImplicitMeta, Rule: "MAJORITY Endorsement" }
+        Endorsement: { Type: ImplicitMeta, Rule: "MAJORITY Endorsement" }
+
+  # ---------------------------------------------------------------------------
+  # The development profile. Three organisations, one orderer, one channel.
+  # This is what everyone runs day to day; the demonstration profile above is
+  # for integration checks and the recording.
+  #
+  # It is deliberately NOT a smaller version of the same claim: with only one
+  # insurer there is no cross-insurer refusal to demonstrate, and the
+  # endorsement policy below is weaker than the real one. Do not screenshot
+  # this profile and call it the architecture.
+  # ---------------------------------------------------------------------------
+  ObhoyDevChannel:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      Organizations:
+        - *OrdererIDRA
+      Capabilities: *OrdererCapabilities
+      Addresses:
+        - orderer1.idra.obhoy.local:7050
+      EtcdRaft:
+        Consenters:
+          - Host: orderer1.idra.obhoy.local
+            Port: 7050
+            ClientTLSCert: ../organizations/ordererOrganizations/idra.obhoy.local/orderers/orderer1.idra.obhoy.local/tls/server.crt
+            ServerTLSCert: ../organizations/ordererOrganizations/idra.obhoy.local/orderers/orderer1.idra.obhoy.local/tls/server.crt
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *Provider
+        - *Field
+        - *InsurerA
+      Policies:
+        Readers:     { Type: ImplicitMeta, Rule: "ANY Readers" }
+        Writers:     { Type: ImplicitMeta, Rule: "ANY Writers" }
+        Admins:      { Type: ImplicitMeta, Rule: "MAJORITY Admins" }
+        LifecycleEndorsement: { Type: ImplicitMeta, Rule: "MAJORITY Endorsement" }
+        Endorsement:
+          Type: Signature
+          Rule: "AND(OutOf(2, 'ProviderMSP.peer', 'FieldMSP.peer'), OutOf(1, 'InsurerAMSP.peer'))"

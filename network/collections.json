@@ -1,0 +1,42 @@
+[
+  {
+    "name": "insurerA_terms",
+    "policy": "OR('InsurerAMSP.member')",
+    "requiredPeerCount": 0,
+    "maxPeerCount": 1,
+    "blockToLive": 0,
+    "memberOnlyRead": true,
+    "memberOnlyWrite": true,
+    "_comment": "Insurer A's commercial terms. Competing insurers work on one channel while keeping pricing, reserving assumptions and reinsurance arrangements out of each other's sight. Without this the consortium is commercially impossible: no insurer will settle on a shared ledger that hands a competitor its book."
+  },
+  {
+    "name": "insurerB_terms",
+    "policy": "OR('InsurerBMSP.member')",
+    "requiredPeerCount": 0,
+    "maxPeerCount": 1,
+    "blockToLive": 0,
+    "memberOnlyRead": true,
+    "memberOnlyWrite": true,
+    "_comment": "The same, for Insurer B. Scenario S11 attempts a cross-read and is refused."
+  },
+  {
+    "name": "enrolment_pii",
+    "policy": "OR('FieldMSP.member','InsurerAMSP.member','InsurerBMSP.member')",
+    "requiredPeerCount": 1,
+    "maxPeerCount": 2,
+    "blockToLive": 0,
+    "memberOnlyRead": true,
+    "memberOnlyWrite": true,
+    "_comment": "The mapping from a subject commitment back to a real person. Only the enrolling aggregator and the enrolling insurer hold it, and neither holds the PRF key that produced the commitment -- that is split across custodians in different classes. Two separate secrets, two separate custodians: neither party alone can turn a ledger entry into a person."
+  },
+  {
+    "name": "clinical_refs",
+    "policy": "OR('ProviderMSP.member','ClinicalMSP.member','InsurerAMSP.member','InsurerBMSP.member')",
+    "requiredPeerCount": 1,
+    "maxPeerCount": 3,
+    "blockToLive": 0,
+    "memberOnlyRead": true,
+    "memberOnlyWrite": true,
+    "_comment": "Content hashes and access envelopes for documents in the off-chain vault. The documents themselves are never here. Field verifiers are deliberately absent from this collection: they attest that an admission happened and never see clinical data."
+  }
+]

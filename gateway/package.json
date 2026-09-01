@@ -1,0 +1,15 @@
+{
+  "name": "obhoy-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "REST gateway over a real Hyperledger Fabric network. Serves the same surface as the in-process local node.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@hyperledger/fabric-gateway": "^1.7.0",
+    "@grpc/grpc-js": "^1.12.2"
+  }
+}

@@ -1,0 +1,472 @@
+# The demonstration network: seven organisations, five ordering nodes.
+#
+# This is what `make demo` brings up. It is heavier than a laptop wants for
+# day-to-day work -- roughly 13 containers and 4-5 GB -- which is why the
+# development profile exists alongside it. Run this for integration checks and
+# for the recording, not for writing chaincode.
+#
+# LevelDB, not CouchDB. Every query in the chaincode goes through composite
+# keys rather than rich queries, specifically so this file does not need seven
+# more database containers.
+
+name: obhoy
+
+volumes:
+  orderer1: {}
+  orderer2: {}
+  orderer3: {}
+  orderer4: {}
+  orderer5: {}
+  peer-provider: {}
+  peer-clinical: {}
+  peer-field: {}
+  peer-insurera: {}
+  peer-insurerb: {}
+  peer-regulator: {}
+  peer-academic: {}
+
+networks:
+  obhoy:
+    name: obhoy_net
+
+x-orderer: &orderer-defaults
+  image: hyperledger/fabric-orderer:2.5.10
+  networks: [obhoy]
+  environment:
+    - FABRIC_LOGGING_SPEC=INFO
+    - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+    - ORDERER_GENERAL_LISTENPORT=7050
+    - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+    - ORDERER_GENERAL_TLS_ENABLED=true
+    - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+    - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+    - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+    - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+    - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+    - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+    - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+    - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+    - ORDERER_ADMIN_TLS_ENABLED=true
+    - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+    - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+    - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+    - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+    - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+    - ORDERER_METRICS_PROVIDER=disabled
+  working_dir: /root
+  command: orderer
+
+x-peer: &peer-defaults
+  image: hyperledger/fabric-peer:2.5.10
+  networks: [obhoy]
+  environment: &peer-env
+    - FABRIC_LOGGING_SPEC=INFO
+    - CORE_PEER_TLS_ENABLED=true
+    - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+    - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+    - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+    - CORE_PEER_PROFILE_ENABLED=false
+    - CORE_LEDGER_STATE_STATEDATABASE=goleveldb
+    - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+    - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=obhoy_net
+    - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+    - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:9443
+    - CORE_METRICS_PROVIDER=disabled
+  working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+  command: peer node start
+
+services:
+  # ------------------------------------------------------------- ordering
+  # One ordering node per institutional class. No class holds a majority --
+  # which bounds who can stall the service. Raft is crash-fault tolerant, not
+  # Byzantine: a malicious ordering majority is not defended against here.
+
+  orderer1.idra.obhoy.local:
+    <<: *orderer-defaults
+    container_name: orderer1.idra.obhoy.local
+    environment:
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererIDRAMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_TLS_ENABLED=true
+      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+      - ORDERER_METRICS_PROVIDER=disabled
+    ports: ["7050:7050", "7053:7053"]
+    volumes:
+      - ../../organizations/ordererOrganizations/idra.obhoy.local/orderers/orderer1.idra.obhoy.local/msp:/var/hyperledger/orderer/msp
+      - ../../organizations/ordererOrganizations/idra.obhoy.local/orderers/orderer1.idra.obhoy.local/tls:/var/hyperledger/orderer/tls
+      - orderer1:/var/hyperledger/production/orderer
+
+  orderer2.insurera.obhoy.local:
+    <<: *orderer-defaults
+    container_name: orderer2.insurera.obhoy.local
+    environment:
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererInsurerAMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_TLS_ENABLED=true
+      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+      - ORDERER_METRICS_PROVIDER=disabled
+    ports: ["8050:7050", "8053:7053"]
+    volumes:
+      - ../../organizations/ordererOrganizations/insurera.obhoy.local/orderers/orderer2.insurera.obhoy.local/msp:/var/hyperledger/orderer/msp
+      - ../../organizations/ordererOrganizations/insurera.obhoy.local/orderers/orderer2.insurera.obhoy.local/tls:/var/hyperledger/orderer/tls
+      - orderer2:/var/hyperledger/production/orderer
+
+  orderer3.insurerb.obhoy.local:
+    <<: *orderer-defaults
+    container_name: orderer3.insurerb.obhoy.local
+    environment:
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererInsurerBMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_TLS_ENABLED=true
+      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+      - ORDERER_METRICS_PROVIDER=disabled
+    ports: ["9050:7050", "9053:7053"]
+    volumes:
+      - ../../organizations/ordererOrganizations/insurerb.obhoy.local/orderers/orderer3.insurerb.obhoy.local/msp:/var/hyperledger/orderer/msp
+      - ../../organizations/ordererOrganizations/insurerb.obhoy.local/orderers/orderer3.insurerb.obhoy.local/tls:/var/hyperledger/orderer/tls
+      - orderer3:/var/hyperledger/production/orderer
+
+  orderer4.aggregator.obhoy.local:
+    <<: *orderer-defaults
+    container_name: orderer4.aggregator.obhoy.local
+    environment:
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererAggregatorMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_TLS_ENABLED=true
+      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+      - ORDERER_METRICS_PROVIDER=disabled
+    ports: ["10050:7050", "10053:7053"]
+    volumes:
+      - ../../organizations/ordererOrganizations/aggregator.obhoy.local/orderers/orderer4.aggregator.obhoy.local/msp:/var/hyperledger/orderer/msp
+      - ../../organizations/ordererOrganizations/aggregator.obhoy.local/orderers/orderer4.aggregator.obhoy.local/tls:/var/hyperledger/orderer/tls
+      - orderer4:/var/hyperledger/production/orderer
+
+  orderer5.academic.obhoy.local:
+    <<: *orderer-defaults
+    container_name: orderer5.academic.obhoy.local
+    environment:
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererAcademicMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_TLS_ENABLED=true
+      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+      - ORDERER_METRICS_PROVIDER=disabled
+    ports: ["11050:7050", "11053:7053"]
+    volumes:
+      - ../../organizations/ordererOrganizations/academic.obhoy.local/orderers/orderer5.academic.obhoy.local/msp:/var/hyperledger/orderer/msp
+      - ../../organizations/ordererOrganizations/academic.obhoy.local/orderers/orderer5.academic.obhoy.local/tls:/var/hyperledger/orderer/tls
+      - orderer5:/var/hyperledger/production/orderer
+
+  # ---------------------------------------------------------------- peers
+
+  peer0.provider.obhoy.local:
+    <<: *peer-defaults
+    container_name: peer0.provider.obhoy.local
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=peer0.provider.obhoy.local
+      - CORE_PEER_ADDRESS=peer0.provider.obhoy.local:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.provider.obhoy.local:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.provider.obhoy.local:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.provider.obhoy.local:7051
+      - CORE_PEER_LOCALMSPID=ProviderMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_LEDGER_STATE_STATEDATABASE=goleveldb
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=obhoy_net
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_METRICS_PROVIDER=disabled
+    ports: ["7051:7051"]
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../../organizations/peerOrganizations/provider.obhoy.local/peers/peer0.provider.obhoy.local/msp:/etc/hyperledger/fabric/msp
+      - ../../organizations/peerOrganizations/provider.obhoy.local/peers/peer0.provider.obhoy.local/tls:/etc/hyperledger/fabric/tls
+      - peer-provider:/var/hyperledger/production
+
+  peer0.clinical.obhoy.local:
+    <<: *peer-defaults
+    container_name: peer0.clinical.obhoy.local
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=peer0.clinical.obhoy.local
+      - CORE_PEER_ADDRESS=peer0.clinical.obhoy.local:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.clinical.obhoy.local:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.clinical.obhoy.local:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.clinical.obhoy.local:7051
+      - CORE_PEER_LOCALMSPID=ClinicalMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_LEDGER_STATE_STATEDATABASE=goleveldb
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=obhoy_net
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_METRICS_PROVIDER=disabled
+    ports: ["8051:7051"]
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../../organizations/peerOrganizations/clinical.obhoy.local/peers/peer0.clinical.obhoy.local/msp:/etc/hyperledger/fabric/msp
+      - ../../organizations/peerOrganizations/clinical.obhoy.local/peers/peer0.clinical.obhoy.local/tls:/etc/hyperledger/fabric/tls
+      - peer-clinical:/var/hyperledger/production
+
+  peer0.field.obhoy.local:
+    <<: *peer-defaults
+    container_name: peer0.field.obhoy.local
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=peer0.field.obhoy.local
+      - CORE_PEER_ADDRESS=peer0.field.obhoy.local:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.field.obhoy.local:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.field.obhoy.local:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.field.obhoy.local:7051
+      - CORE_PEER_LOCALMSPID=FieldMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_LEDGER_STATE_STATEDATABASE=goleveldb
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=obhoy_net
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_METRICS_PROVIDER=disabled
+    ports: ["9051:7051"]
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../../organizations/peerOrganizations/field.obhoy.local/peers/peer0.field.obhoy.local/msp:/etc/hyperledger/fabric/msp
+      - ../../organizations/peerOrganizations/field.obhoy.local/peers/peer0.field.obhoy.local/tls:/etc/hyperledger/fabric/tls
+      - peer-field:/var/hyperledger/production
+
+  peer0.insurera.obhoy.local:
+    <<: *peer-defaults
+    container_name: peer0.insurera.obhoy.local
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=peer0.insurera.obhoy.local
+      - CORE_PEER_ADDRESS=peer0.insurera.obhoy.local:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.insurera.obhoy.local:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.insurera.obhoy.local:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.insurera.obhoy.local:7051
+      - CORE_PEER_LOCALMSPID=InsurerAMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_LEDGER_STATE_STATEDATABASE=goleveldb
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=obhoy_net
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_METRICS_PROVIDER=disabled
+    ports: ["10051:7051"]
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../../organizations/peerOrganizations/insurera.obhoy.local/peers/peer0.insurera.obhoy.local/msp:/etc/hyperledger/fabric/msp
+      - ../../organizations/peerOrganizations/insurera.obhoy.local/peers/peer0.insurera.obhoy.local/tls:/etc/hyperledger/fabric/tls
+      - peer-insurera:/var/hyperledger/production
+
+  peer0.insurerb.obhoy.local:
+    <<: *peer-defaults
+    container_name: peer0.insurerb.obhoy.local
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=peer0.insurerb.obhoy.local
+      - CORE_PEER_ADDRESS=peer0.insurerb.obhoy.local:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.insurerb.obhoy.local:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.insurerb.obhoy.local:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.insurerb.obhoy.local:7051
+      - CORE_PEER_LOCALMSPID=InsurerBMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_LEDGER_STATE_STATEDATABASE=goleveldb
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=obhoy_net
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_METRICS_PROVIDER=disabled
+    ports: ["11051:7051"]
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../../organizations/peerOrganizations/insurerb.obhoy.local/peers/peer0.insurerb.obhoy.local/msp:/etc/hyperledger/fabric/msp
+      - ../../organizations/peerOrganizations/insurerb.obhoy.local/peers/peer0.insurerb.obhoy.local/tls:/etc/hyperledger/fabric/tls
+      - peer-insurerb:/var/hyperledger/production
+
+  peer0.regulator.obhoy.local:
+    <<: *peer-defaults
+    container_name: peer0.regulator.obhoy.local
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=peer0.regulator.obhoy.local
+      - CORE_PEER_ADDRESS=peer0.regulator.obhoy.local:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.regulator.obhoy.local:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.regulator.obhoy.local:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.regulator.obhoy.local:7051
+      - CORE_PEER_LOCALMSPID=RegulatorMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_LEDGER_STATE_STATEDATABASE=goleveldb
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=obhoy_net
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_METRICS_PROVIDER=disabled
+    ports: ["12051:7051"]
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../../organizations/peerOrganizations/regulator.obhoy.local/peers/peer0.regulator.obhoy.local/msp:/etc/hyperledger/fabric/msp
+      - ../../organizations/peerOrganizations/regulator.obhoy.local/peers/peer0.regulator.obhoy.local/tls:/etc/hyperledger/fabric/tls
+      - peer-regulator:/var/hyperledger/production
+
+  peer0.academic.obhoy.local:
+    <<: *peer-defaults
+    container_name: peer0.academic.obhoy.local
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_ID=peer0.academic.obhoy.local
+      - CORE_PEER_ADDRESS=peer0.academic.obhoy.local:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.academic.obhoy.local:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.academic.obhoy.local:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.academic.obhoy.local:7051
+      - CORE_PEER_LOCALMSPID=AcademicMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_LEDGER_STATE_STATEDATABASE=goleveldb
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=obhoy_net
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+      - CORE_METRICS_PROVIDER=disabled
+    ports: ["13051:7051"]
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../../organizations/peerOrganizations/academic.obhoy.local/peers/peer0.academic.obhoy.local/msp:/etc/hyperledger/fabric/msp
+      - ../../organizations/peerOrganizations/academic.obhoy.local/peers/peer0.academic.obhoy.local/tls:/etc/hyperledger/fabric/tls
+      - peer-academic:/var/hyperledger/production
+
+  # ------------------------------------------------------------------ cli
+  # Carries the peer and osnadmin binaries so the scripts do not need Fabric
+  # installed on the host.
+  cli:
+    image: hyperledger/fabric-tools:2.5.10
+    container_name: obhoy-cli
+    tty: true
+    stdin_open: true
+    networks: [obhoy]
+    environment:
+      - GOPATH=/opt/gopath
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_PEER_TLS_ENABLED=true
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: /bin/bash
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock
+      - ../../organizations:/opt/gopath/src/github.com/hyperledger/fabric/peer/organizations
+      - ../../channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts
+      - ../../chaincode:/opt/gopath/src/github.com/hyperledger/fabric/peer/chaincode
+      - ../collections.json:/opt/gopath/src/github.com/hyperledger/fabric/peer/collections.json
+    depends_on:
+      - peer0.provider.obhoy.local
+      - peer0.clinical.obhoy.local
+      - peer0.field.obhoy.local
+      - peer0.insurera.obhoy.local
+      - peer0.insurerb.obhoy.local

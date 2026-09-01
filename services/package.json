@@ -1,0 +1,13 @@
+{
+  "name": "obhoy-services",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Off-chain services for the Obhoy prototype: keyed-PRF commitments under threshold custody, an encrypted document vault, a payload-bound payout adapter, an HMIS feed, a collusion scorer, and the public-chain anchor.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {}
+}
