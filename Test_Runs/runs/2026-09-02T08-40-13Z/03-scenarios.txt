@@ -1,0 +1,316 @@
+
+==============================================================================
+S1   Happy path: a claim settles
+     criterion: Problem & Solution
+     Assert, corroborate, close, adjudicate, authorise.
+------------------------------------------------------------------------------
+  ok  1. ProviderMSP    openEvent                                  accepted
+         -- the admitting facility asserts the event; that assertion is
+            itself one attesting class
+  ok  2. ClinicalMSP    attestEvent                                accepted
+         -- an independent diagnostic centre corroborates -- a second
+            class, and not the payee
+  ok  3. ProviderMSP    closeEvent                                 accepted
+         -- two classes including one non-payee: the event is now
+            CLOSED_ELIGIBLE
+  ok  4. InsurerAMSP    createEntitlement                          accepted
+  ok  5. InsurerAMSP    adjudicate                                 accepted
+         -- the amount comes from the published schedule, not from any
+            document the claimant wrote
+  ok  6. InsurerAMSP    authoriseSettlement                        accepted
+  ok  7. InsurerAMSP    benefit matches the published schedule     accepted
+------------------------------------------------------------------------------
+     PASSED. Settled 3000000 minor units on event 6a73f0bc6009.
+
+==============================================================================
+S2   Cross-insurer duplicate refused at commit
+     criterion: Problem & Solution
+     Refusal at commit across insurers who cannot see each other.
+------------------------------------------------------------------------------
+  ok  1. ProviderMSP    openEvent                                  accepted
+         -- insurer A's facility admits the patient
+  ok  2. ProviderMSP    openEvent                                  refused (as required)
+         invariant (4) violated: subject already has open event
+         cbfd58ecb75754ac7ed06d371d1260df8d550d12ded3c2bdc4f07367a8e7af7c;
+         use continueEvent for a transfer or readmission
+         -- refused at commit under equation (4), not detected afterwards
+            by reconciliation
+  ok  3. network        the refused transaction wrote nothing      accepted
+  ok  4. HOSP-PRIVATE-SVR the open event is visible before the attempt accepted
+------------------------------------------------------------------------------
+     PASSED. The second assertion never reached the ledger.
+
+==============================================================================
+S3   Second entitlement on the same policy refused
+     criterion: Problem & Solution
+     One entitlement per (event, policy).
+------------------------------------------------------------------------------
+  ok  1. ProviderMSP    openEvent                                  accepted
+  ok  2. ClinicalMSP    attestEvent                                accepted
+  ok  3. ProviderMSP    closeEvent                                 accepted
+  ok  4. InsurerAMSP    createEntitlement                          accepted
+  ok  5. InsurerAMSP    createEntitlement                          refused (as required)
+         invariant (8) violated: entitlement
+         fd36aa41cd8849f2395df03cd627d6269dd3de3398225e7bf7729abdcba27132
+         already exists for this (event, policy) pair
+         -- equation (8): at most one entitlement per (event, policy) pair
+------------------------------------------------------------------------------
+     PASSED. The duplicate claim was refused.
+
+==============================================================================
+S4   Genuine dual cover pays
+     criterion: Problem & Solution
+     Indemnity and fixed-benefit bounds are held apart.
+------------------------------------------------------------------------------
+  ok  1. ProviderMSP    openEvent                                  accepted
+  ok  2. ClinicalMSP    attestEvent                                accepted
+  ok  3. ProviderMSP    closeEvent                                 accepted
+  ok  4. InsurerAMSP    createEntitlement                          accepted
+  ok  5. InsurerAMSP    adjudicate                                 accepted
+  ok  6. InsurerAMSP    authoriseSettlement                        accepted
+         -- the employer indemnity scheme pays
+  ok  7. InsurerBMSP    the second insurer can see the first insurer's payment accepted
+         -- today no insurer in this market can see this at any price
+  ok  8. InsurerBMSP    createEntitlement                          accepted
+  ok  9. InsurerBMSP    adjudicate                                 accepted
+  ok 10. InsurerBMSP    authoriseSettlement                        accepted
+         -- the MFI hospital-cash policy pays too -- this MUST NOT be
+            refused
+------------------------------------------------------------------------------
+     PASSED. Both policies settled, and the second insurer saw the first before it did.
+
+==============================================================================
+S5   Transfer between facilities settles once
+     criterion: Problem & Solution
+     The invariant blocks duplicate payment, not repeated contact with the
+     health system.
+------------------------------------------------------------------------------
+  ok  1. ProviderMSP    openEvent                                  accepted
+         -- the patient is stabilised at an upazila health complex
+  ok  2. ProviderMSP    continueEvent                              accepted
+         -- the district hospital adds a segment instead of opening a
+            second event
+  ok  3. network        one event, two admission segments          accepted
+  ok  4. FieldMSP       attestEvent                                accepted
+  ok  5. ProviderMSP    closeEvent                                 accepted
+  ok  6. InsurerAMSP    createEntitlement                          accepted
+  ok  7. InsurerAMSP    adjudicate                                 accepted
+  ok  8. InsurerAMSP    authoriseSettlement                        accepted
+------------------------------------------------------------------------------
+     PASSED. A transferred episode settled once, on one benefit.
+
+==============================================================================
+S6   Readmission inside the window links
+     criterion: Problem & Solution
+     One benefit ceiling per episode.
+------------------------------------------------------------------------------
+  ok  1. ProviderMSP    openEvent                                  accepted
+  ok  2. ClinicalMSP    attestEvent                                accepted
+  ok  3. ProviderMSP    closeEvent                                 accepted
+         -- the first admission reaches CLOSED_ELIGIBLE
+  ok  4. ProviderMSP    continueEvent                              accepted
+         -- a readmission inside the window re-opens the same event rather
+            than minting a new one
+  ok  5. ProviderMSP    closeEvent                                 accepted
+  ok  6. InsurerAMSP    createEntitlement                          accepted
+  ok  7. InsurerAMSP    adjudicate                                 accepted
+  ok  8. InsurerAMSP    authoriseSettlement                        accepted
+  ok  9. network        one entitlement despite two admissions     accepted
+------------------------------------------------------------------------------
+     PASSED. The readmission did not create a second claim.
+
+==============================================================================
+S7   Payee cannot corroborate itself
+     criterion: Architecture
+     Nobody is paid on the payee's word.
+------------------------------------------------------------------------------
+  ok  1. ProviderMSP    openEvent                                  accepted
+  ok  2. ProviderMSP    attestEvent                                refused (as required)
+         invariant (6) violated: class PROVIDER has already attested this
+         event
+         -- a second facility of the payee's own class adds no class to the
+            set
+  ok  3. ProviderMSP    closeEvent                                 refused (as required)
+         invariant (6) violated: attestations span 1 class(es), 2 required
+         -- equation (6): one class is not a quorum, however many times it
+            signs
+  ok  4. FieldMSP       attestEvent                                accepted
+         -- an MFI field agent at the bedside supplies an independent class
+  ok  5. ProviderMSP    closeEvent                                 accepted
+------------------------------------------------------------------------------
+     PASSED. Eligibility required a class that is not getting paid.
+
+==============================================================================
+S8   De-accredited provider cannot re-register clean
+     criterion: Governance
+     Revocation is permanent, visible, and survives in the record.
+------------------------------------------------------------------------------
+  ok  1. RegulatorMSP   deAccredit                                 accepted
+  ok  2. ProviderMSP    openEvent                                  refused (as required)
+         asserter HOSP-PRIVATE-SVR was de-accredited on 1788338416 and may
+         not open events
+         -- a de-accredited facility cannot assert an event
+  ok  3. RegulatorMSP   accredit (re-registration)                 refused (as required)
+         provider HOSP-PRIVATE-SVR was de-accredited on 1788338416 for
+         "upheld appeals above threshold" and cannot re-register; a council
+         vote must reinstate it
+         -- Mechanism 3: it cannot re-enter clean, because the history
+            survives revocation
+  ok  4. AcademicMSP    the accreditation history is intact and public accepted
+------------------------------------------------------------------------------
+     PASSED. Both the assertion and the re-registration were refused.
+
+==============================================================================
+S9   Denying insurer cannot decide the appeal
+     criterion: Governance
+     Conflict rules enforced in chaincode rather than in a policy document.
+------------------------------------------------------------------------------
+  ok  1. ProviderMSP    openEvent                                  accepted
+  ok  2. ClinicalMSP    attestEvent                                accepted
+  ok  3. ProviderMSP    closeEvent                                 accepted
+  ok  4. InsurerAMSP    createEntitlement                          accepted
+  ok  5. InsurerAMSP    deny                                       accepted
+         -- denial stays a human judgement; what the ledger fixes is that
+            it is coded, permanent and counted
+  ok  6. InsurerAMSP    deny without a code                        refused (as required)
+         a denial without a coded reason cannot be counted or appealed
+         -- an uncoded denial could not be counted or appealed, so it is
+            refused
+  ok  7. FieldMSP       appeal                                     accepted
+  ok  8. InsurerAMSP    panelDecision on its own denial            refused (as required)
+         conflict of interest: InsurerAMSP denied this entitlement and may
+         not decide the appeal against its own denial
+         -- the conflict rule is in chaincode: an insurer may not validate
+            an appeal against its own denial
+  ok  9. PanelMSP       panelDecision (independent)                accepted
+  ok 10. InsurerAMSP    adjudicate                                 accepted
+  ok 11. InsurerAMSP    authoriseSettlement                        accepted
+         -- an overturned denial returns for adjudication -- the panel does
+            not price claims
+------------------------------------------------------------------------------
+     PASSED. The conflicted decision was refused; an independent panel overturned the denial.
+
+==============================================================================
+S10  Period anchored; tampering detected
+     criterion: Problem & Solution
+     Confidentiality inside, immutability outside.
+------------------------------------------------------------------------------
+  ok  1. ProviderMSP    openEvent                                  accepted
+  ok  2. ClinicalMSP    attestEvent                                accepted
+  ok  3. ProviderMSP    closeEvent                                 accepted
+  ok  4. InsurerAMSP    createEntitlement                          accepted
+  ok  5. InsurerAMSP    adjudicate                                 accepted
+  ok  6. InsurerAMSP    authoriseSettlement                        accepted
+  ok  7. RegulatorMSP   closePeriod                                accepted
+         -- the totals are a by-product of the claim path, not a report
+            somebody files
+  ok  8. RegulatorMSP   recordAnchor                               accepted
+  ok  9. public         the published figure verifies against the anchored root accepted
+  ok 10. public         a restated figure does not verify          accepted
+  ok 11. RegulatorMSP   closePeriod again                          refused (as required)
+         period 2026Q1-POOL-A is already closed; totals are not restated in
+         place
+         -- a closed period is not restated in place
+------------------------------------------------------------------------------
+     PASSED. Root f6f9f073141d committed; a restated figure fails verification.
+
+==============================================================================
+S11  Access control and the world state
+     criterion: Privacy & Security
+     Roles are structural, and no on-chain field is protected health
+     information on its own.
+------------------------------------------------------------------------------
+  ok  1. ProviderMSP    openEvent                                  accepted
+  ok  2. ClinicalMSP    attestEvent                                accepted
+  ok  3. ProviderMSP    closeEvent                                 accepted
+  ok  4. InsurerAMSP    createEntitlement                          accepted
+  ok  5. InsurerAMSP    adjudicate                                 accepted
+  ok  6. InsurerAMSP    authoriseSettlement                        accepted
+  ok  7. ProviderMSP    createEntitlement (as the payee)           refused (as required)
+         organisation ProviderMSP holds class PROVIDER and may not call
+         this function
+         -- a provider opens and attests but cannot authorise its own
+            payment
+  ok  8. FieldMSP       openEvent (as a field agent)               refused (as required)
+         organisation FieldMSP holds class FIELD and may not call this
+         function
+         -- field verifiers attest but never assert
+  ok  9. InsurerBMSP    adjudicate a competitor's entitlement      refused (as required)
+         entitlement
+         f6b3ec266b0efaebe3a2918585a26f94d1884b7e718541640b0958ce6788cade
+         belongs to InsurerAMSP
+         -- insurers adjudicate only their own policies
+  ok 10. StrangerMSP    openEvent (non-member)                     refused (as required)
+         organisation "StrangerMSP" is not a member of this network
+  ok 11. public         the entire world state holds no identifier accepted
+------------------------------------------------------------------------------
+     PASSED. Four out-of-role calls refused; 53 world-state keys scanned clean.
+
+==============================================================================
+S12  Payout instructions are payload-bound
+     criterion: Architecture
+     Disbursement crosses a boundary the ledger does not control.
+------------------------------------------------------------------------------
+  ok  1. ProviderMSP    openEvent                                  accepted
+  ok  2. ClinicalMSP    attestEvent                                accepted
+  ok  3. ProviderMSP    closeEvent                                 accepted
+  ok  4. InsurerAMSP    createEntitlement                          accepted
+  ok  5. InsurerAMSP    adjudicate                                 accepted
+  ok  6. InsurerAMSP    settle without a request identifier        refused (as required)
+         a settlement reference is required so the payout instruction is
+         payload-bound
+         -- an instruction that is not payload-bound cannot be safely
+            retried, so it is refused
+  ok  7. InsurerAMSP    authoriseSettlement                        accepted
+         -- the ledger authorises payment; the MFS adapter executes it
+            against this request identifier
+  ok  8. InsurerAMSP    authoriseSettlement                        refused (as required)
+         invariant (9) violated: entitlement is already consumed and cannot
+         be re-opened
+         -- re-authorising a consumed entitlement is refused, whatever
+            request identifier is offered
+------------------------------------------------------------------------------
+     PASSED. Settlement carries a payload-bound reference and cannot be re-authorised.
+
+==============================================================================
+G1   Governance caps bind, not describe
+     criterion: Governance
+     Admission is gated on measured decentralisation, computed on-chain.
+------------------------------------------------------------------------------
+  ok  1. AcademicMSP    published metrics match the charter        accepted
+  ok  2. InsurerAMSP    proposeAdmission breaching the 0.30 cap    refused (as required)
+         proposal refused: class INSURERS would hold 0.35 of the vote; the
+         hard cap is 0.30
+         -- refused before any vote: the council cannot vote itself past
+            its own concentration limits
+  ok  3. InsurerAMSP    proposeAdmission dropping the Nakamoto Coefficient to 2 refused (as required)
+         proposal refused: admission would drop the Nakamoto Coefficient to
+         2; the floor is 3, because at 2 two classes could form a majority
+  ok  4. InsurerAMSP    proposeAdmission within the caps           accepted
+  ok  5. InsurerAMSP    vote                                       accepted
+  ok  6. RegulatorMSP   vote                                       accepted
+  ok  7. FieldMSP       vote                                       accepted
+         -- 0.30 + 0.20 + 0.20 = 0.70 clears the two-thirds threshold
+  ok  8. AcademicMSP    the admitted council still satisfies the caps accepted
+------------------------------------------------------------------------------
+     PASSED. Two breaching proposals refused; a compliant one carried at NC 3.
+
+==============================================================================
+SUMMARY
+------------------------------------------------------------------------------
+  PASS  S1   Happy path: a claim settles                    Problem & Solution
+  PASS  S2   Cross-insurer duplicate refused at commit      Problem & Solution
+  PASS  S3   Second entitlement on the same policy refused  Problem & Solution
+  PASS  S4   Genuine dual cover pays                        Problem & Solution
+  PASS  S5   Transfer between facilities settles once       Problem & Solution
+  PASS  S6   Readmission inside the window links            Problem & Solution
+  PASS  S7   Payee cannot corroborate itself                Architecture
+  PASS  S8   De-accredited provider cannot re-register cle… Governance
+  PASS  S9   Denying insurer cannot decide the appeal       Governance
+  PASS  S10  Period anchored; tampering detected            Problem & Solution
+  PASS  S11  Access control and the world state             Privacy & Security
+  PASS  S12  Payout instructions are payload-bound          Architecture
+  PASS  G1   Governance caps bind, not describe             Governance
+------------------------------------------------------------------------------
+  13 of 13 scenarios passed
+

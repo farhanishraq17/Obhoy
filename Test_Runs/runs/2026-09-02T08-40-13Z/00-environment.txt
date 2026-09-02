@@ -1,0 +1,9 @@
+run          2026-09-02T08-40-13Z
+host         MINGW64_NT-10.0-26200 x86_64
+go           go version go1.23.4 windows/amd64
+node         v24.11.1
+python       Python 3.13.3
+docker       daemon not reachable
+configtxgen  Version:v2.5.10
+commit       a2377dd
+tree state   4 uncommitted change(s)

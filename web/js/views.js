@@ -727,7 +727,7 @@ export async function scenarios(root) {
     h('h2', {}, 'Adversarial harness'),
     h('p', { class: 'lede' },
       'Thirteen scripted runs with asserted outcomes. ',
-      h('strong', {}, 'Most of them pass by producing a refusal'),
+      h('strong', {}, 'Nine of the thirteen pass by producing a refusal'),
       ' — the ledger declining to write something is the property being demonstrated. Each runs against its own freshly bootstrapped network, so firing one does not disturb the ledger you are browsing.'),
   );
 

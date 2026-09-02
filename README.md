@@ -2,7 +2,7 @@
 
 # Obhoy
 
-### A blockchain claims-integrity network for catastrophic health protection
+### A multi-line blockchain claims-integrity protocol for low-trust insurance markets
 
 **অভয়** — *freedom from fear*
 
@@ -12,52 +12,50 @@
 [![Tests](https://img.shields.io/badge/tests-48_passing-117A65?style=flat-square)](#13-evidence-the-thirteen-scenarios)
 [![Licence](https://img.shields.io/badge/licence-Apache--2.0-8A7208?style=flat-square)](LICENSE)
 
-*A working prototype of the protocol described in*
-*“Obhoy: A Blockchain Claims-Integrity Network for Catastrophic Health Protection”*
+**Md. Farhan Ishraq**¹ · **Didhiti Nahid**¹ · **Tamim Muhammad Rayeed**²
+
+<sub>¹ Department of Computer Science and Engineering, Islamic University of Technology<br>
+² Department of Nuclear Engineering, University of Dhaka</sub>
 
 </div>
 
 ---
 
-> **In the final quarter of 2025, general insurers in Bangladesh settled 9.37% of
-> filed claims.** Not *disputed* — nine in a hundred were paid.
+> In the final quarter of 2025, general insurers in Bangladesh settled **9.37%**
+> of filed claims. Not *disputed* — nine in a hundred were paid.
 >
-> This repository argues that the reason is not fraud, or greed, or bad
-> regulation. It is that **nobody can independently check that the insured event
-> happened, because the only record comes from a party with a stake in it** — and
-> it makes that argument executable.
+> We think the reason is not fraud, or greed, or bad regulation. It is that
+> **nobody can independently check that the insured event happened, because the
+> only record comes from a party with a stake in it.** This repository is that
+> argument, built and running.
 
 ```bash
 git clone https://github.com/farhanishraq17/Obhoy.git && cd Obhoy && ./obhoy.sh dev
 ```
 
-Open **http://localhost:7545**. No Docker, no `npm install`, no build step.
+Then open **http://localhost:7545**. No Docker, no `npm install`, no build step.
 
 ---
 
-## 📄 Whitepaper, poster and demo
+## The paper and the poster
 
-> [!NOTE]
-> **These slots are reserved.** Drop the files into `docs/assets/` using the exact
-> filenames below and these links resolve — nothing else needs editing.
-> See [`docs/assets/README.md`](docs/assets/README.md) for the format
-> requirements and how to make the poster preview.
+| | |
+|---|---|
+| 📘 **Whitepaper** | [`CutiePookieUrza_Whitepaper.pdf`](PaperPoster/CutiePookieUrza_Whitepaper.pdf) — 20 pages, IEEE format |
+| 🖼️ **Poster** | [`CPU_FINAL_poster_14400x10800.pdf`](PaperPoster/Final-Whiteposter/CPU_FINAL_poster_14400x10800.pdf) — 14400 × 10800 px, 48 × 36 in at 300 dpi, landscape |
+| 🎥 **Demo video** | *link to follow* |
+| 💻 **Prototype** | this repository — [quick start](#12-quick-start), [runbook](docs/DEMO-RUNBOOK.md) |
 
-| Deliverable | Status | Link |
-|---|---|---|
-| 📘 **Whitepaper** — IEEE format, ≤ 20 pages | ⏳ *to be added* | `docs/assets/obhoy-whitepaper.pdf` |
-| 🖼️ **Poster** — 14400 × 10800, landscape | ⏳ *to be added* | `docs/assets/obhoy-poster.pdf` |
-| 🎥 **Demo video** — 600 seconds, 16:9 | ⏳ *to be added* | *paste the link here* |
-| 💻 **Prototype** | ✅ **this repository** | [Quick start](#12-quick-start) · [Runbook](docs/DEMO-RUNBOOK.md) |
-
-<!-- Once the poster preview lands, uncomment this block:
 <div align="center">
-  <a href="docs/assets/obhoy-poster.pdf">
-    <img src="docs/assets/obhoy-poster-preview.png" alt="Obhoy poster" width="900">
+  <a href="PaperPoster/Final-Whiteposter/CPU_FINAL_poster_14400x10800.pdf">
+    <img src="PaperPoster/Final-Whiteposter/poster-preview.jpg" alt="Obhoy poster" width="900">
   </a>
-  <p><em>The poster. Click for the full-resolution PDF.</em></p>
+  <p><sub>Click through for the full-resolution PDF.</sub></p>
 </div>
--->
+
+The paper is the argument. The poster is the argument on one sheet. This
+repository is the part you can run, and the part that can be wrong in ways the
+other two cannot.
 
 ---
 
@@ -90,20 +88,24 @@ Open **http://localhost:7545**. No Docker, no `npm install`, no build step.
 
 ## 1. The problem
 
-Insurance fails in low-trust markets in large part because of **how the record is
-kept**, not only because of how the risk is priced. And the failure is not
-confined to one line of business.
+Insurance fails in low-trust markets largely because of **how the record is
+kept**, not only because of how the risk is priced. And it is not one line of
+business that fails.
 
 <table>
 <tr>
 <td width="25%" align="center"><h3>9.37%</h3>of filed claims settled by Bangladeshi general insurers, Q4 2025</td>
-<td width="25%" align="center"><h3>“Ponzi&nbsp;scheme”</h3>what crop-insurance research records farmers calling insurance</td>
+<td width="25%" align="center"><h3>74%</h3>of health spending paid out of pocket, up from 55.9% in 1997 — the trajectory is worsening</td>
 <td width="25%" align="center"><h3>2018</h3>the year the state made third-party motor cover <em>optional</em>, dropping a rule it could not enforce</td>
-<td width="25%" align="center"><h3>$308.6bn</h3>estimated annual cost of the same problem in the United States, where it is priced rather than solved</td>
+<td width="25%" align="center"><h3>$308.6bn</h3>the same problem in the United States, where it is priced rather than solved</td>
 </tr>
 </table>
 
-These are not four problems. They are one problem, and it compounds.
+Life insurers hold an uneasy 66–85% settlement rate. General insurers have
+collapsed to fewer than one claim in ten. Crop-insurance research records
+farmers calling insurance a *Ponzi scheme*. These look like four separate
+markets failing for four separate reasons. They are one problem, and it
+compounds.
 
 ### The loop that keeps it in place
 
@@ -120,18 +122,18 @@ flowchart LR
     class A,B,C,D,E,F problem
 ```
 
-<div align="center"><em>Self-reinforcing. Every arrow makes the next one worse, and capital cannot break in anywhere.</em></div>
+<div align="center"><em>Every arrow makes the next one worse, and capital cannot break in anywhere.</em></div>
 
 ### Four distinct verification failures
 
-Each is separate, and each needs its own answer.
+Separate problems, each needing its own answer.
 
 | | Failure | What it means in practice |
 |:--:|---|---|
 | **1** | **The insurer cannot verify that the event occurred** | The claim arrives with evidence written by the party being paid: an invoice and discharge summary from the hospital, a damage assessment from the garage, a loss declaration from the farmer. Nothing independent confirms it |
 | **2** | **No insurer can see another insurer's claims** | The same loss can be recovered twice across insurers who have no way to see each other, at any price |
 | **3** | **Claimant-supplied evidence is the only measure of loss** | If the payout is computed from a document the claimant wrote, inflating that document is simply profitable |
-| **4** | **The policyholder cannot verify the insurer** | A buyer has no way to check whether an insurer actually pays before handing over a premium. So they assume it does not — correctly, at 9.37% |
+| **4** | **The policyholder cannot verify the insurer** | A buyer cannot check whether an insurer actually pays before handing over a premium. So they assume it does not — correctly, at 9.37% |
 
 ---
 
@@ -173,12 +175,12 @@ flowchart LR
     class M1,M2,M3,M4 mech
 ```
 
-Read the project this way. **Event uniqueness is the newest of the mechanisms,
-but it is a mechanism, not the thesis.** A system that only stopped duplicate
+Read the project that way. Event uniqueness is the newest of the mechanisms,
+but it is a mechanism, not the thesis. A system that only stopped duplicate
 claiming would leave failures 1, 3 and 4 open — and those are the ones that stop
 buyers believing the promise at all.
 
-### The five mechanisms in full
+### The five mechanisms
 
 | | Mechanism | Enforced by |
 |:--:|---|---|
@@ -205,8 +207,8 @@ flowchart TB
     E -.->|"entitlement"| C1["<b>Employer scheme</b><br/>indemnity · Insurer A"]
     E -.->|"entitlement"| C2["<b>MFI hospital cash</b><br/>fixed benefit · Insurer B"]
 
-    C1 --> S1["settles ✓"]
-    C2 --> S2["settles ✓"]
+    C1 --> S1["settles"]
+    C2 --> S2["settles"]
 
     A1["Upazila health<br/>complex"] -->|"opens"| E
     A2["District hospital"] -->|"<b>continueEvent</b><br/>adds a segment"| E
@@ -231,19 +233,19 @@ The relation is many-to-one, and it has to be:
 <table>
 <tr><td width="50%" valign="top">
 
-#### ⚠️ Get it too strict and you deny valid cover
+#### Too strict, and you deny valid cover
 
 A garment worker covered by an employer scheme *and* enrolled through an MFI
 group holds two policies. A fixed-benefit hospital-cash product is **designed**
 to pay alongside an indemnity policy.
 
 Paying both is the contract, not a fraud. A protocol that blocked the second
-payment because the event was “already claimed” would be **rejected by a
-regulator on first reading**.
+payment because the event was "already claimed" would be rejected by a regulator
+on first reading.
 
 </td><td width="50%" valign="top">
 
-#### ⚠️ Get it too loose and you pay twice
+#### Too loose, and you pay twice
 
 What *is* fraudulent is **indemnity duplication** — recovering the same economic
 loss twice. That is an arithmetic condition over the entitlement set, not a
@@ -256,9 +258,8 @@ $$\sum_{c \in \mathcal{I}(e)} \text{paid}(c) \leq \text{loss}(e)
 </td></tr>
 </table>
 
-> **What the mechanism really does:** the ledger does not forbid the second
-> claim — **it lets the second insurer see the first.** Which today no insurer
-> can, at any price.
+> The ledger does not forbid the second claim — **it lets the second insurer see
+> the first.** Which today no insurer can, at any price.
 
 ### The false positive that would break the deployment
 
@@ -268,8 +269,8 @@ would see the receiving facility's assertion collide with the open event and
 refuse it — denying a valid claim at the worst possible moment.
 
 So the event allows a `continueEvent` transition. The receiving provider,
-attested by the transferring one, **adds an admission segment instead of opening
-a new event**. A readmission inside a set window links the same way and is judged
+attested by the transferring one, adds an admission segment instead of opening a
+new event. A readmission inside a set window links the same way and is judged
 against a single benefit ceiling.
 
 > **The invariant blocks duplicate payment, not repeated contact with the health
@@ -288,15 +289,15 @@ model and the transparency layer do not.
 | **Motor** | `H(vehicle ID ‖ incident timestamp)`<br/>*one collision per vehicle per moment* | Police or traffic authority · independent surveyor · workshop *(payee, cannot attest alone)* | Scheduled benefit by damage class, or a parametric total-loss trigger |
 | **Property** | `H(parcel or asset ID ‖ peril window)` | Fire service or disaster authority · independent loss adjuster · local government record | Parametric for named catastrophe perils, scheduled otherwise |
 
-Two points of honesty about scope. **The key is strongest in health**, where a
+Two points of honesty about scope. The key is strongest in health, where a
 person can only be in one place, so a second assertion is refused at commit
-rather than caught after payment. **It is weakest in property**, where one storm
-can legitimately damage several insured assets. We do not claim equal fraud
+rather than caught after payment. It is weakest in property, where one storm can
+legitimately damage several insured assets. We do not claim equal fraud
 resistance across lines.
 
-In this repository the **Health** and **Crop** profiles are both registered on
-chain by the demonstration seed, and nothing in the chaincode reads the line
-name. That is the generalisation claim made checkable rather than asserted.
+The **Health** and **Crop** profiles are both registered on chain by the
+demonstration seed, and nothing in the chaincode reads the line name — which is
+how the generalisation claim gets checked rather than asserted.
 
 ---
 
@@ -339,9 +340,9 @@ stateDiagram-v2
     }
 ```
 
-The **event** reaches `CLOSED_ELIGIBLE` once and stays there — it has no
+The **event** reaches `CLOSED_ELIGIBLE` once and stays there. It has no
 settlement state of its own, so a second legitimate entitlement can still settle
-against it later. No transition re-opens a consumed event key.
+against it later, and no transition re-opens a consumed event key.
 
 The **entitlement** is what settlement actually consumes. Apart from an upheld
 denial, `SETTLED` is its only terminal state.
@@ -362,7 +363,7 @@ sequenceDiagram
     P->>H: admitted
     H->>L: openEvent()
     Note over L: uniqueness invariant<br/>refuses a second open<br/>event on this subject
-    L-->>H: OPEN ✓
+    L-->>H: OPEN
 
     C->>L: attestEvent(class CLINICAL)
     F->>L: attestEvent(class FIELD)
@@ -381,7 +382,7 @@ sequenceDiagram
     T->>T: Merkle root → public chain
 ```
 
-Each refusal `openEvent` can make, in order:
+Every refusal `openEvent` can make, in the order it makes them:
 
 ```
 1  the asserting party is not accredited          →  refused
@@ -396,47 +397,47 @@ Each refusal `openEvent` can make, in order:
 
 ## 5. Why blockchain, and not a database
 
-This is the question a technical jury asks first, and the honest answer is
+This is the first question a technical jury asks, and the honest answer is
 narrow rather than broad.
 
 <table>
 <tr><th width="34%">Property</th><th width="33%">A shared central database</th><th width="33%">Obhoy</th></tr>
 <tr>
 <td><b>Refuse a duplicate <i>across</i> insurers</b></td>
-<td>Requires one operator that every competing insurer trusts with its whole book. That operator does not exist, and would be a single point of capture if it did</td>
-<td>✅ Refused at commit, with no party holding the complete record</td>
+<td>Needs one operator that every competing insurer trusts with its whole book. That operator does not exist, and would be a single point of capture if it did</td>
+<td><b>Refused at commit</b>, with no party holding the complete record</td>
 </tr>
 <tr>
 <td><b>Publish a settlement ratio a buyer can check</b></td>
 <td>The operator can restate it, and nobody outside can tell</td>
-<td>✅ Merkle root anchored on a public chain; a restated period no longer verifies</td>
+<td><b>Merkle root anchored on a public chain</b>; a restated period no longer verifies</td>
 </tr>
 <tr>
 <td><b>Enforce a multi-party quorum</b></td>
 <td>Application code, which the operator can change</td>
-<td>✅ The endorsement policy — a protocol rule, changed only by channel reconfiguration</td>
+<td><b>The endorsement policy</b> — a protocol rule, changed only by channel reconfiguration</td>
 </tr>
 <tr>
 <td><b>Regulatory oversight</b></td>
 <td>Periodic reports the regulator requests</td>
-<td>✅ IDRA holds a validating copy. Supervision is architectural, not contractual</td>
+<td><b>IDRA holds a validating copy.</b> Supervision is architectural, not contractual</td>
 </tr>
 <tr>
 <td><b>Raw throughput</b></td>
-<td>✅ Far higher</td>
+<td><b>Far higher</b></td>
 <td>Slower, and it does not matter at the volume of catastrophic hospitalisations</td>
 </tr>
 <tr>
 <td><b>Operational simplicity</b></td>
-<td>✅ Much simpler</td>
-<td>Materially harder. This is a real cost, not a rhetorical concession</td>
+<td><b>Much simpler</b></td>
+<td>Materially harder. A real cost, not a rhetorical concession</td>
 </tr>
 </table>
 
-> The claim is not that a blockchain is better. It is that **exactly one property
-> here is unobtainable without one** — refusal at commit across mutually
-> distrusting insurers with no trusted operator — and that property is what the
-> whole design is built on.
+> We are not claiming a blockchain is better. We are claiming that **exactly one
+> property here is unobtainable without one** — refusal at commit across
+> mutually distrusting insurers with no trusted operator — and that the whole
+> design is built on it.
 
 ---
 
@@ -505,9 +506,8 @@ flowchart TB
     class X1,X2,X3,X4,X5 ext
 ```
 
-Everything below the dashed boundary is a system Obhoy **integrates with but
-does not control** — which is why A1 and A2 are assumptions rather than
-guarantees.
+Everything below the dashed boundary is a system Obhoy integrates with but does
+not control — which is why A1 and A2 are assumptions rather than guarantees.
 
 ### Network topology
 
@@ -556,9 +556,9 @@ flowchart TB
 
 > Raft is **crash-fault tolerant, not Byzantine**. Institutional spread bounds
 > *who can stall* the service. It does not make a malicious ordering majority
-> harmless, and nothing here claims otherwise.
+> harmless, and we do not claim otherwise.
 
-### The endorsement policy *is* the architectural claim
+### The endorsement policy is the architectural claim
 
 ```
 AND(OutOf(2, 'ProviderMSP.peer', 'ClinicalMSP.peer', 'FieldMSP.peer'),
@@ -575,11 +575,12 @@ Read back out of the generated genesis block, not out of a file:
 > identities: `ProviderMSP/PEER`, `ClinicalMSP/PEER`, `FieldMSP/PEER`, `InsurerAMSP/PEER`, `InsurerBMSP/PEER`
 
 The `OutOf(2, …)` term **is Mechanism 2**. The insurer signs as *payer*, not as a
-third attesting class. Softening this to `MAJORITY Endorsement` would leave the
-quorum enforced only by application code, and the mechanism would become a
-convention.
+third attesting class. Soften this to `MAJORITY Endorsement` and the quorum is
+enforced only by application code — the mechanism becomes a convention, and
+every test in this repository still passes. `Test_Runs/check-network.sh` exists
+to catch exactly that.
 
-It is set in the **channel configuration**, not passed at deploy time — a policy
+It lives in the **channel configuration**, not in a deploy-time flag. A policy
 supplied on a command line can be changed at the next deploy without a
 configuration update, and a multi-class quorum is not something one organisation
 should be able to loosen alone.
@@ -621,31 +622,32 @@ flowchart LR
     class K1,K2,K3 key
 ```
 
-Three decisions, all from the paper, all of which matter:
+Three things about this are easy to get wrong, and all three matter:
 
-1. **Keyed, not a bare hash.** A SHA-256 of a national identity number is *not* a
-   pseudonym — the space is small enough to enumerate, so the digest **is** the
-   number.
-2. **One key across the network, not a salt per insurer.** Independent salts
-   would mint a different commitment per insurer for the same person, silently
-   breaking the cross-insurer invariant. The mechanism would appear to work while
-   doing nothing.
-3. **Never held whole.** No single class can compute a commitment, and no single
-   class can be compelled to.
+**It is keyed, not a bare hash.** A SHA-256 of a national identity number is not
+a pseudonym. The space is small enough to enumerate, so the digest *is* the
+number.
 
-`context` domain-separates the uses — the commitment that keys an event is not
-the one that binds a policy credential, so a leak in one does not unlock the
+**There is one key across the network, not a salt per insurer.** Independent
+salts would mint a different commitment per insurer for the same person, which
+silently breaks the cross-insurer invariant. The mechanism would appear to work
+while doing nothing at all.
+
+**The key is never held whole.** No single class can compute a commitment, and
+no single class can be compelled to.
+
+`context` domain-separates the uses, so the commitment that keys an event is not
+the one that binds a policy credential and a leak in one does not unlock the
 other. Key version travels with every commitment, so a compromise can be scoped
 and retired.
 
-> **Demonstrate it in thirty seconds.** Take one custodian offline: commitments
-> still issue, from a different pair, and the value is **identical**. Take a
-> second offline: they stop. Nothing degrades gracefully in between — that is
-> the property.
+> Worth doing live: take one custodian offline and commitments still issue, from
+> a different pair, at the **identical** value. Take a second offline and they
+> stop. Nothing degrades gracefully in between — that is the property.
 
 ### On-chain and off-chain
 
-| ✅ On-chain | 🔒 Off-chain |
+| On-chain | Off-chain |
 |---|---|
 | Policy credential (NID commitment) | NID numbers, names, addresses |
 | Event record, state, timestamps | Clinical notes, imaging, labs |
@@ -655,7 +657,7 @@ and retired.
 | Provider accreditation history | Biometric templates |
 | Period transparency aggregates | Documents *(content hash on-chain only)* |
 
-**No single on-chain field is protected health information on its own.** A test
+No single on-chain field is protected health information on its own. A test
 dumps the entire world state on every build and fails if anything shaped like a
 national identity number, a name or a free-text diagnosis appears.
 
@@ -665,8 +667,8 @@ national identity number, a name or a free-text diagnosis appears.
 > a party seeing enough of them, over enough periods, can plausibly link a
 > subject to an illness category without ever reading a diagnosis field. Hashes
 > and pseudonyms are not automatically anonymous. Private data collections scope
-> who sees which combination; the residual is a data-protection question, and
-> the paper treats it as one.
+> who sees which combination; the residual is a data-protection question, and we
+> treat it as one.
 
 ### Key management — the honest problem
 
@@ -675,7 +677,7 @@ widow her cover because she lost a seed phrase is worse than no scheme.
 
 | Who | How | Recovery |
 |---|---|---|
-| **Policyholders** | Custodial keys held by the aggregator | Field agent **+** a second household member — the social recovery mobile-money users already know |
+| **Policyholders** | Custodial keys held by the aggregator | Field agent **plus** a second household member — the social recovery mobile-money users already know |
 | **Providers and verifiers** | Device-bound keys in mobile secure elements | On-chain revocation |
 | **Institutional members** | HSMs with documented rotation | Threshold custody across classes |
 
@@ -720,13 +722,14 @@ flowchart LR
 
 Two details that are easy to get wrong and are not:
 
-- **The anchor script rebuilds the root itself** before submitting, and refuses
-  on mismatch. Anchoring a root the chaincode handed over would only prove that
-  the chaincode agrees with itself.
-- **`ObhoyAnchor.sol` has no update path.** If a period could be re-anchored, an
-  insurer that restated its settlement ratio could restate the commitment to
-  match, and a reader could not tell. A mistake is corrected by anchoring a *new*
-  period that supersedes the old one, in public.
+The anchor script **rebuilds the root itself** before submitting, and refuses on
+mismatch. Anchoring a root the chaincode handed over would only prove that the
+chaincode agrees with itself.
+
+`ObhoyAnchor.sol` **has no update path**. If a period could be re-anchored, an
+insurer that restated its settlement ratio could restate the commitment to
+match, and a reader could not tell. A mistake is corrected by anchoring a *new*
+period that supersedes the old one, in public.
 
 > [!IMPORTANT]
 > **Anchoring binds integrity after inclusion, not completeness.** A claim that
@@ -744,8 +747,8 @@ outside both ledgers. The contract stores 32 bytes per period and nothing else.
 ## 9. Governance
 
 These weights govern the council's **own votes** — charter amendments, upgrade
-approval, member admission and off-boarding. **They do not govern transaction
-validation**, which runs on the endorsement policy and Raft ordering and which no
+approval, member admission and off-boarding. They do not govern transaction
+validation, which runs on the endorsement policy and Raft ordering and which no
 weight table alters. Conflating the two is the most common way a consortium
 design is misread.
 
@@ -762,11 +765,11 @@ majority and three can, so the **Nakamoto Coefficient is 3**.
 
 <div align="center">
 
-| Metric | Value | Bound | |
+| Metric | Value | Bound | Within |
 |---|---|---|---|
-| Nakamoto Coefficient | **3** | floor 3 | ✅ |
-| Gini coefficient | **0.14** | ceiling 0.20 | ✅ |
-| Largest class | **0.30** | cap 0.30 | ✅ |
+| Nakamoto Coefficient | **3** | floor 3 | yes |
+| Gini coefficient | **0.14** | ceiling 0.20 | yes |
+| Largest class | **0.30** | cap 0.30 | yes |
 
 </div>
 
@@ -777,7 +780,7 @@ if admission keeps the Nakamoto Coefficient at 3 or above and the Gini at or
 below 0.20.
 
 ```
-propose  insurers → 0.35                    →  REFUSED  before any vote
+propose  insurers → 0.35                     →  REFUSED  before any vote
 propose  four classes at 0.30/0.30/0.20/0.20 →  REFUSED  Nakamoto Coefficient would fall to 2
 propose  a sixth class within the caps       →  accepted → 0.30+0.20+0.20 = 0.70 carries
 ```
@@ -788,9 +791,10 @@ Both measure concentration of *formal* authority, not independence of
 incentives: classes can be constitutionally separate and still align
 commercially. **A floor on dispersion, not proof against capture.**
 
-**Conflict rules, in chaincode rather than in a policy document:** the provider
+Conflict rules live in chaincode rather than in a policy document: the provider
 association may not help validate claim decisions affecting its own member
-facilities, and insurers may not help validate appeals against their own denials.
+facilities, and insurers may not help validate appeals against their own
+denials.
 
 ---
 
@@ -847,8 +851,9 @@ obhoy/
 ├── gateway/                    REST over a real Fabric peer, identical surface
 ├── network/                    configtx · compose · the network script
 ├── anchor/                     ObhoyAnchor.sol and its Hardhat project
+├── Test_Runs/                  the runner, and captured evidence per run
+├── PaperPoster/                the whitepaper and the poster
 └── docs/                       limitations · findings · runbook · architecture
-    └── assets/                 ← whitepaper, poster and preview go here
 ```
 
 ### The eight contracts
@@ -883,7 +888,7 @@ real properties and they exist only on the real network.
 
 ## 12. Quick start
 
-### Path 1 — the demonstration *(Go only)*
+### The demonstration — Go only
 
 ```bash
 ./obhoy.sh dev            # or  .\obhoy.ps1 dev  on Windows
@@ -894,27 +899,24 @@ start-up — five council classes, two domain profiles, seven accredited parties
 published benefit schedule, eight synthetic subjects, ten policies, two open
 reporting periods — and prints every transaction as it commits.
 
-**What to click, in order:**
+The fastest route to the part that matters: open the **Claim desk** as *Provider
+association* and assert an admission. Then assert the **same subject from a
+different facility** without closing the first. That refusal is the whole
+argument in one screen. Attest it as *Independent clinician*, then settle it as
+*Insurer A*, and watch the **Published record** fill in.
 
-1. **Published record** — the public explorer. No credential, no login.
-2. **Claim desk** as *Provider association* → assert an admission. Then assert
-   the **same subject from a different facility** without closing the first.
-   *That refusal is the headline.*
-3. Switch to *Independent clinician* → attest. Switch to *Insurer A* → claim,
-   adjudicate, authorise.
-4. **Harness** → *Run all*. Thirteen scenarios, eight of which pass by producing
-   a refusal.
-5. **Ledger** — every transaction including the refused ones, and the entire
-   world state with the identifier scan over it.
+The **Harness** tab runs all thirteen scenarios, and the **Ledger** tab shows
+every transaction including the refused ones, alongside the entire world state
+with the identifier scan over it.
 
-### Path 2 — services and anchoring *(+ Node 20)*
+### Services and anchoring — plus Node 20
 
 ```bash
 ./obhoy.sh services       # nine processes, ports 7551–7565
 ./obhoy.sh anchor test    # the Solidity contract
 ```
 
-### Path 3 — the real Fabric network *(+ Docker, from WSL2)*
+### The real Fabric network — plus Docker, from WSL2
 
 ```bash
 ./obhoy.sh fabric up demo       # crypto material, 13 containers, two channels
@@ -926,7 +928,8 @@ reporting periods — and prints every transaction as it commits.
 > **Run this from WSL2 Ubuntu with the repository on the ext4 filesystem — not
 > `/mnt/d`.** Fabric requires TLS private key files to be mode 0600 and the
 > Windows mount cannot represent that. The peers start, then fail the handshake,
-> and the error looks like a certificate problem and is not one.
+> and the error looks like a certificate problem and is not one. This one costs
+> an afternoon if you meet it late.
 
 Full detail in **[docs/RUNNING.md](docs/RUNNING.md)**.
 
@@ -934,7 +937,7 @@ Full detail in **[docs/RUNNING.md](docs/RUNNING.md)**.
 
 ## 13. Evidence: the thirteen scenarios
 
-Each is a scripted run with an asserted outcome. **Eight of them pass by
+Each is a scripted run with an asserted outcome. **Nine of them pass by
 producing a refusal** — the ledger declining to write something is the property
 being demonstrated. Each runs against its own freshly bootstrapped network.
 
@@ -959,20 +962,24 @@ being demonstrated. Each runs against its own freshly bootstrapped network.
 | **S12** | Payout instructions are payload-bound | The ledger authorises payment, it does not execute it | Architecture |
 | **G1** | Governance caps bind, not describe | Admission gated on measured decentralisation | Governance |
 
-> If you have time for only one, it is **S2**. If you have time for two, the
-> second is **S4** — because it is the one that shows the mechanism is not
-> simply strict.
+> If you have time for one, make it **S2**. If you have time for two, the second
+> is **S4** — because it is the one that shows the mechanism is not simply
+> strict.
 
 ### What has been run
 
+Captured evidence lives in [`Test_Runs/`](Test_Runs/), one timestamped directory
+per run, with the raw output of every suite alongside the summary.
+
 | Suite | Result |
 |---|---|
-| Chaincode — 21 Go tests, one per invariant plus the cases that must not fail | ✅ **all pass** |
-| Services — threshold custody, keyed-PRF properties, Merkle vectors | ✅ **7 pass** |
-| Adversarial harness | ✅ **13 of 13** |
-| `ObhoyAnchor.sol` | ✅ **7 pass** |
-| `configtx.yaml` — three channel genesis blocks via `configtxgen` 2.5.10 | ✅ **generated; endorsement policy verified in the block** |
-| End-to-end anchoring — ledger → independent rebuild → on-chain → recorded back | ✅ **works** |
+| Chaincode — Go tests, one per invariant plus the cases that must not fail | **21 pass** |
+| Services — threshold custody, keyed-PRF properties, Merkle vectors | **7 pass** |
+| Adversarial harness | **13 of 13** |
+| `ObhoyAnchor.sol` | **7 pass** |
+| Per-step analysis — did each refusal cite the right invariant? | **101 steps, all matched** |
+| `configtx.yaml` — three channel genesis blocks, endorsement policy verified in the block | **passes** |
+| End-to-end anchoring — ledger → independent rebuild → on-chain → recorded back | **works** |
 
 Every test name carries the equation number from Appendix A of the paper, so the
 appendix and the suite can be diffed line by line:
@@ -991,19 +998,24 @@ TestReadmission_SettlesOnce                    ← must not fail
 TestDualCover_BothPoliciesSettle               ← must not fail
 ```
 
+One gap worth naming: equations **(2)** and **(5)** refuse correctly in the unit
+suite, but no *scenario* demonstrates the refusal — S4, S5 and S6 only exercise
+their success paths. The tests cover them, so this is a thinner demonstration
+rather than a correctness problem.
+
 ---
 
 ## 14. What this does not prove
 
 > [!IMPORTANT]
-> The whitepaper's credibility comes from stating its own limits. A prototype
-> that quietly widened its claims would undo that. **The full list is
+> The paper's credibility comes from stating its own limits, and a prototype
+> that quietly widened its claims would undo that. The full list is
 > [docs/LIMITATIONS.md](docs/LIMITATIONS.md), and it is worth reading before the
-> code.**
+> code.
 
 | | Limit |
 |---|---|
-| 🔴 | **Assumption A2 — identity resolution — is assumed, not demonstrated.** There is no national ID verification service here. Two identities for one person defeat the invariant *before* chaincode is entered. **This is the strongest guarantee in the paper and the one the prototype cannot test** |
+| 🔴 | **Assumption A2 — identity resolution — is assumed, not demonstrated.** There is no national ID verification service here. Two identities for one person defeat the invariant *before* chaincode is entered. This is the strongest guarantee in the paper and the one the prototype cannot test |
 | 🔴 | **The seven-organisation Fabric network has not been brought up.** Its configuration is validated — crypto material generates, all three genesis blocks build, the endorsement policy was read back out of the block — but no container has been started |
 | 🟡 | **Assumption A1 — membership.** A claim settled off-network is invisible |
 | 🟡 | **Anonymous attestation is partial.** Fabric does not extend Idemix to endorsement; the paper concedes this. The ledger record has the right shape, the cryptography behind it does not yet |
@@ -1016,7 +1028,7 @@ TestDualCover_BothPoliciesSettle               ← must not fail
 | 🟡 | **Metadata linkage is mitigated, not eliminated** |
 | 🟡 | **Nothing here has been priced.** A prototype can show the verification works. It cannot show the premium falls |
 
-And the one row in the fraud taxonomy the paper declines to claim as solved:
+And the one row in the fraud taxonomy we do not claim to have solved:
 
 > **Payee–verifier collusion.** A facility and a verifier who always work
 > together produce attestations that are individually valid in every way the
@@ -1028,25 +1040,24 @@ And the one row in the fraud taxonomy the paper declines to claim as solved:
 
 ## 15. Findings against the paper
 
-Building the prototype surfaced things the paper gets wrong or leaves ambiguous.
-They are recorded rather than silently patched, because the paper is the
-deliverable being defended. Full detail in
+Building the prototype turned up things the paper gets wrong or leaves
+ambiguous. They are recorded rather than quietly patched, because the paper is
+the deliverable being defended. Full detail in
 **[docs/FINDINGS.md](docs/FINDINGS.md)**.
 
 | | Finding |
 |---|---|
-| **1** | **§6.2's comparison Gini of 0.26 does not follow from the paper's own formula.** That formula reproduces Obhoy's 0.14 exactly, which is what makes the other figure conspicuous — applied to 0.4/0.3/0.3 it gives **0.0667**. Correctly computed, the Gini says the *opposite* of what the paragraph claims. The Nakamoto Coefficient half (3 vs 2) is sound and is the binding metric |
-| **2** | **§5.8's event state list contradicts §5.6.** The prototype implements §5.6 — the event has no settlement state — because the dual-cover case depends on it. §5.8 needs a one-line correction |
+| **1** | **The comparison Gini of 0.26 does not follow from the paper's own formula.** That formula reproduces Obhoy's 0.14 exactly, which is what makes the other figure conspicuous — applied to 0.4/0.3/0.3 it gives **0.0667**. Correctly computed, the Gini says the *opposite* of what the paragraph claims. The Nakamoto Coefficient half (3 vs 2) is sound and is the binding metric |
+| **2** | **The event state list contradicts the state machine.** The prototype implements the state-machine reading — the event has no settlement state — because the dual-cover case depends on it. The field list needs a one-line correction |
 | **3** | **Equation (7) is implied by (6) under every profile in the paper.** It is a redundant guard, and stops being redundant the moment a profile designates more than one payee-side class. Kept and tested on its own terms |
-| **4** | **“`openEvent` checks the policy is active” needs a reading.** An event is policy-independent; implemented as *at least one* live policy |
+| **4** | **"`openEvent` checks the policy is active" needs a reading.** An event is policy-independent; implemented as *at least one* live policy |
 | **5** | **The continuation window is unspecified.** Made a domain-profile parameter — 30 days for health, 120 for crop |
 
 ---
 
 ## 16. Roadmap
 
-Where this prototype sits in the paper's phase plan, and what would have to be
-true to move.
+Where this prototype sits in the paper's phase plan.
 
 ```mermaid
 timeline
@@ -1059,8 +1070,8 @@ timeline
     Phase 5–6 · M20+ : National scheme : parametric crop on the same consortium
 ```
 
-**This repository is the technical half of Phase 1.** What it does not carry is
-the half that decides whether the project happens at all: a licensed insurer, an
+This repository is the technical half of Phase 1. What it does not carry is the
+half that decides whether the project happens at all: a licensed insurer, an
 aggregator, and an actuary.
 
 ### The decision gates
@@ -1078,7 +1089,7 @@ advance is what makes the proposal testable rather than promotional.
 4. **The prototype cannot enforce the single-open-event invariant, the
    continuation rule or multi-class endorsement under adversarial test — or
    enforces them so bluntly that legitimate transfers and dual cover are
-   refused.** *(This gate is the one this repository answers. It passes.)*
+   refused.** *(This is the gate this repository answers, and it passes.)*
 5. Pilot data shows the fraud reduction achieved is too small to move the
    premium — in which case the affordability thesis, not the technology, has
    failed.
@@ -1090,33 +1101,40 @@ advance is what makes the proposal testable rather than promotional.
 **Apache-2.0.** See [LICENSE](LICENSE).
 
 Apache rather than MIT for one reason that matters here: it carries an explicit
-**patent grant**. A protocol proposed as shared infrastructure that several
+patent grant. A protocol proposed as shared infrastructure that several
 competing insurers are meant to settle on should not leave any of them exposed
 to a patent claim from another contributor.
 
 One file is third-party — `network/config/core.yaml`, redistributed verbatim from
 Hyperledger Fabric v2.5.10 (Apache-2.0, © IBM Corp.), with its headers intact.
-[NOTICE](NOTICE) records it. Everything else here is original.
+[NOTICE](NOTICE) records it. Everything else here is ours.
 
 ---
 
 <div align="center">
 
-### Further reading in this repository
+### Further reading
 
 [**Architecture**](docs/ARCHITECTURE.md) &nbsp;·&nbsp;
 [**Limitations**](docs/LIMITATIONS.md) &nbsp;·&nbsp;
 [**Findings**](docs/FINDINGS.md) &nbsp;·&nbsp;
 [**Running it**](docs/RUNNING.md) &nbsp;·&nbsp;
-[**Demo runbook**](docs/DEMO-RUNBOOK.md)
+[**Demo runbook**](docs/DEMO-RUNBOOK.md) &nbsp;·&nbsp;
+[**Test runs**](Test_Runs/)
 
 ---
 
-Everything in this repository is synthetic. No real person, facility, policy or
-national identity number appears anywhere in it; the demonstration identifiers
-are structurally invalid by construction, and a test fails the build if anything
-identifier-shaped reaches the ledger.
+*Beyond the ledgers and loss ratios, Obhoy exists for one reason: to make sure a
+family's hardest moment is met with a safety net rather than a financial
+freefall.*
 
-<sub>Built for the Blockchain Olympiad Bangladesh · SDG 1 · SDG 3.8</sub>
+---
+
+<sub>Everything in this repository is synthetic. No real person, facility, policy
+or national identity number appears anywhere in it; the demonstration
+identifiers are structurally invalid by construction, and a test fails the build
+if anything identifier-shaped reaches the ledger.</sub>
+
+<sub>Blockchain Olympiad Bangladesh · SDG 1 · SDG 3.8 · farhanishraq17@iut-dhaka.edu</sub>
 
 </div>

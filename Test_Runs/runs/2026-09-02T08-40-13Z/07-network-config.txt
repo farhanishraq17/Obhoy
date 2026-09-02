@@ -1,0 +1,26 @@
+network configuration check
+  configtx   /d/Project Based Learning/Block-chain/Obhoy/Obhoy - Github/network/configtx.yaml
+  workdir    /tmp/tmp.fJZzqIkEzI
+
+== generating crypto material ==
+  7 peer organisations, 5 orderer organisations
+
+== generating channel genesis blocks ==
+  ok    obhoy-main  <- ObhoyMainChannel
+  ok    obhoy-audit  <- ObhoyAuditChannel
+  ok    obhoy-dev  <- ObhoyDevChannel
+
+== reading the endorsement policy back out of the block ==
+  application organisations: AcademicMSP, ClinicalMSP, FieldMSP, InsurerAMSP, InsurerBMSP, ProviderMSP, RegulatorMSP
+  endorsement identities:   ProviderMSP/PEER, ClinicalMSP/PEER, FieldMSP/PEER, InsurerAMSP/PEER, InsurerBMSP/PEER
+  endorsement rule:         {"n_out_of": {"n": 2, "rules": [{"n_out_of": {"n": 2, "rules": [{"signed_by": 0}, {"signed_by": 1}, {"signed_by": 2}]}}, {"n_out_of": {"n": 1, "rules": [{"signed_by": 3}, {"signed_by": 4}]}}]}}
+  orderer organisations:    OrdererAcademicMSP, OrdererAggregatorMSP, OrdererIDRAMSP, OrdererInsurerAMSP, OrdererInsurerBMSP
+  raft consenters:          orderer1.idra.obhoy.local, orderer2.insurera.obhoy.local, orderer3.insurerb.obhoy.local, orderer4.aggregator.obhoy.local, orderer5.academic.obhoy.local
+
+  VERIFIED  AND(OutOf(2, ProviderMSP.peer, ClinicalMSP.peer, FieldMSP.peer),
+                OutOf(1, InsurerAMSP.peer, InsurerBMSP.peer))
+
+  This is Mechanism 2 at protocol level. The insurer signs as payer, not
+  as a third attesting class.
+
+PASSED

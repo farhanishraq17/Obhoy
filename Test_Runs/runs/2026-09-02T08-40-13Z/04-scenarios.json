@@ -1,0 +1,1074 @@
+[
+  {
+    "id": "S1",
+    "title": "Happy path: a claim settles",
+    "criterion": "Problem \u0026 Solution",
+    "claim": "Assert, corroborate, close, adjudicate, authorise.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "the admitting facility asserts the event; that assertion is itself one attesting class"
+      },
+      {
+        "n": 2,
+        "actor": "ClinicalMSP",
+        "action": "attestEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "an independent diagnostic centre corroborates -- a second class, and not the payee"
+      },
+      {
+        "n": 3,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "two classes including one non-payee: the event is now CLOSED_ELIGIBLE"
+      },
+      {
+        "n": 4,
+        "actor": "InsurerAMSP",
+        "action": "createEntitlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 5,
+        "actor": "InsurerAMSP",
+        "action": "adjudicate",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "the amount comes from the published schedule, not from any document the claimant wrote"
+      },
+      {
+        "n": 6,
+        "actor": "InsurerAMSP",
+        "action": "authoriseSettlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 7,
+        "actor": "InsurerAMSP",
+        "action": "benefit matches the published schedule",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "adjudicated at 3000000 minor units against schedule entry H-CARD-01",
+        "ok": true
+      }
+    ],
+    "passed": true,
+    "summary": "Settled 3000000 minor units on event 6a73f0bc6009."
+  },
+  {
+    "id": "S2",
+    "title": "Cross-insurer duplicate refused at commit",
+    "criterion": "Problem \u0026 Solution",
+    "claim": "Refusal at commit across insurers who cannot see each other.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "insurer A's facility admits the patient"
+      },
+      {
+        "n": 2,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "invariant (4) violated: subject already has open event cbfd58ecb75754ac7ed06d371d1260df8d550d12ded3c2bdc4f07367a8e7af7c; use continueEvent for a transfer or readmission",
+        "ok": true,
+        "comment": "refused at commit under equation (4), not detected afterwards by reconciliation"
+      },
+      {
+        "n": 3,
+        "actor": "network",
+        "action": "the refused transaction wrote nothing",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "the refusal produced a failed transaction with an empty write set",
+        "ok": true
+      },
+      {
+        "n": 4,
+        "actor": "HOSP-PRIVATE-SVR",
+        "action": "the open event is visible before the attempt",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "the second facility can see that cbfd58ecb757 is already open on this subject",
+        "ok": true
+      }
+    ],
+    "passed": true,
+    "summary": "The second assertion never reached the ledger."
+  },
+  {
+    "id": "S3",
+    "title": "Second entitlement on the same policy refused",
+    "criterion": "Problem \u0026 Solution",
+    "claim": "One entitlement per (event, policy).",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 2,
+        "actor": "ClinicalMSP",
+        "action": "attestEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 3,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 4,
+        "actor": "InsurerAMSP",
+        "action": "createEntitlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 5,
+        "actor": "InsurerAMSP",
+        "action": "createEntitlement",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "invariant (8) violated: entitlement fd36aa41cd8849f2395df03cd627d6269dd3de3398225e7bf7729abdcba27132 already exists for this (event, policy) pair",
+        "ok": true,
+        "comment": "equation (8): at most one entitlement per (event, policy) pair"
+      }
+    ],
+    "passed": true,
+    "summary": "The duplicate claim was refused."
+  },
+  {
+    "id": "S4",
+    "title": "Genuine dual cover pays",
+    "criterion": "Problem \u0026 Solution",
+    "claim": "Indemnity and fixed-benefit bounds are held apart.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 2,
+        "actor": "ClinicalMSP",
+        "action": "attestEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 3,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 4,
+        "actor": "InsurerAMSP",
+        "action": "createEntitlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 5,
+        "actor": "InsurerAMSP",
+        "action": "adjudicate",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 6,
+        "actor": "InsurerAMSP",
+        "action": "authoriseSettlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "the employer indemnity scheme pays"
+      },
+      {
+        "n": 7,
+        "actor": "InsurerBMSP",
+        "action": "the second insurer can see the first insurer's payment",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "coverage view shows {\"paidFixed\":0,\"paidIndemnity\":3000000}",
+        "ok": true,
+        "comment": "today no insurer in this market can see this at any price"
+      },
+      {
+        "n": 8,
+        "actor": "InsurerBMSP",
+        "action": "createEntitlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 9,
+        "actor": "InsurerBMSP",
+        "action": "adjudicate",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 10,
+        "actor": "InsurerBMSP",
+        "action": "authoriseSettlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "the MFI hospital-cash policy pays too -- this MUST NOT be refused"
+      }
+    ],
+    "passed": true,
+    "summary": "Both policies settled, and the second insurer saw the first before it did."
+  },
+  {
+    "id": "S5",
+    "title": "Transfer between facilities settles once",
+    "criterion": "Problem \u0026 Solution",
+    "claim": "The invariant blocks duplicate payment, not repeated contact with the health system.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "the patient is stabilised at an upazila health complex"
+      },
+      {
+        "n": 2,
+        "actor": "ProviderMSP",
+        "action": "continueEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "the district hospital adds a segment instead of opening a second event"
+      },
+      {
+        "n": 3,
+        "actor": "network",
+        "action": "one event, two admission segments",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "event carries 2 segments and remains a single episode",
+        "ok": true
+      },
+      {
+        "n": 4,
+        "actor": "FieldMSP",
+        "action": "attestEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 5,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 6,
+        "actor": "InsurerAMSP",
+        "action": "createEntitlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 7,
+        "actor": "InsurerAMSP",
+        "action": "adjudicate",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 8,
+        "actor": "InsurerAMSP",
+        "action": "authoriseSettlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      }
+    ],
+    "passed": true,
+    "summary": "A transferred episode settled once, on one benefit."
+  },
+  {
+    "id": "S6",
+    "title": "Readmission inside the window links",
+    "criterion": "Problem \u0026 Solution",
+    "claim": "One benefit ceiling per episode.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 2,
+        "actor": "ClinicalMSP",
+        "action": "attestEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 3,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "the first admission reaches CLOSED_ELIGIBLE"
+      },
+      {
+        "n": 4,
+        "actor": "ProviderMSP",
+        "action": "continueEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "a readmission inside the window re-opens the same event rather than minting a new one"
+      },
+      {
+        "n": 5,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 6,
+        "actor": "InsurerAMSP",
+        "action": "createEntitlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 7,
+        "actor": "InsurerAMSP",
+        "action": "adjudicate",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 8,
+        "actor": "InsurerAMSP",
+        "action": "authoriseSettlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 9,
+        "actor": "network",
+        "action": "one entitlement despite two admissions",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "event carries 1 entitlement(s); entitlement e65bfd75d769",
+        "ok": true
+      }
+    ],
+    "passed": true,
+    "summary": "The readmission did not create a second claim."
+  },
+  {
+    "id": "S7",
+    "title": "Payee cannot corroborate itself",
+    "criterion": "Architecture",
+    "claim": "Nobody is paid on the payee's word.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 2,
+        "actor": "ProviderMSP",
+        "action": "attestEvent",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "invariant (6) violated: class PROVIDER has already attested this event",
+        "ok": true,
+        "comment": "a second facility of the payee's own class adds no class to the set"
+      },
+      {
+        "n": 3,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "invariant (6) violated: attestations span 1 class(es), 2 required",
+        "ok": true,
+        "comment": "equation (6): one class is not a quorum, however many times it signs"
+      },
+      {
+        "n": 4,
+        "actor": "FieldMSP",
+        "action": "attestEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "an MFI field agent at the bedside supplies an independent class"
+      },
+      {
+        "n": 5,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      }
+    ],
+    "passed": true,
+    "summary": "Eligibility required a class that is not getting paid."
+  },
+  {
+    "id": "S8",
+    "title": "De-accredited provider cannot re-register clean",
+    "criterion": "Governance",
+    "claim": "Revocation is permanent, visible, and survives in the record.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "RegulatorMSP",
+        "action": "deAccredit",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 2,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "asserter HOSP-PRIVATE-SVR was de-accredited on 1788338417 and may not open events",
+        "ok": true,
+        "comment": "a de-accredited facility cannot assert an event"
+      },
+      {
+        "n": 3,
+        "actor": "RegulatorMSP",
+        "action": "accredit (re-registration)",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "provider HOSP-PRIVATE-SVR was de-accredited on 1788338417 for \"upheld appeals above threshold\" and cannot re-register; a council vote must reinstate it",
+        "ok": true,
+        "comment": "Mechanism 3: it cannot re-enter clean, because the history survives revocation"
+      },
+      {
+        "n": 4,
+        "actor": "AcademicMSP",
+        "action": "the accreditation history is intact and public",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "1788338417 ACCREDITED by RegulatorMSP | 1788338417 DEACCREDITED by RegulatorMSP: upheld appeals above threshold",
+        "ok": true
+      }
+    ],
+    "passed": true,
+    "summary": "Both the assertion and the re-registration were refused."
+  },
+  {
+    "id": "S9",
+    "title": "Denying insurer cannot decide the appeal",
+    "criterion": "Governance",
+    "claim": "Conflict rules enforced in chaincode rather than in a policy document.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 2,
+        "actor": "ClinicalMSP",
+        "action": "attestEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 3,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 4,
+        "actor": "InsurerAMSP",
+        "action": "createEntitlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 5,
+        "actor": "InsurerAMSP",
+        "action": "deny",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "denial stays a human judgement; what the ledger fixes is that it is coded, permanent and counted"
+      },
+      {
+        "n": 6,
+        "actor": "InsurerAMSP",
+        "action": "deny without a code",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "a denial without a coded reason cannot be counted or appealed",
+        "ok": true,
+        "comment": "an uncoded denial could not be counted or appealed, so it is refused"
+      },
+      {
+        "n": 7,
+        "actor": "FieldMSP",
+        "action": "appeal",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 8,
+        "actor": "InsurerAMSP",
+        "action": "panelDecision on its own denial",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "conflict of interest: InsurerAMSP denied this entitlement and may not decide the appeal against its own denial",
+        "ok": true,
+        "comment": "the conflict rule is in chaincode: an insurer may not validate an appeal against its own denial"
+      },
+      {
+        "n": 9,
+        "actor": "PanelMSP",
+        "action": "panelDecision (independent)",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 10,
+        "actor": "InsurerAMSP",
+        "action": "adjudicate",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 11,
+        "actor": "InsurerAMSP",
+        "action": "authoriseSettlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "an overturned denial returns for adjudication -- the panel does not price claims"
+      }
+    ],
+    "passed": true,
+    "summary": "The conflicted decision was refused; an independent panel overturned the denial."
+  },
+  {
+    "id": "S10",
+    "title": "Period anchored; tampering detected",
+    "criterion": "Problem \u0026 Solution",
+    "claim": "Confidentiality inside, immutability outside.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 2,
+        "actor": "ClinicalMSP",
+        "action": "attestEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 3,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 4,
+        "actor": "InsurerAMSP",
+        "action": "createEntitlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 5,
+        "actor": "InsurerAMSP",
+        "action": "adjudicate",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 6,
+        "actor": "InsurerAMSP",
+        "action": "authoriseSettlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 7,
+        "actor": "RegulatorMSP",
+        "action": "closePeriod",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "the totals are a by-product of the claim path, not a report somebody files"
+      },
+      {
+        "n": 8,
+        "actor": "RegulatorMSP",
+        "action": "recordAnchor",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 9,
+        "actor": "public",
+        "action": "the published figure verifies against the anchored root",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "claimsSettled=1 proved against root f6f9f073141d",
+        "ok": true
+      },
+      {
+        "n": 10,
+        "actor": "public",
+        "action": "a restated figure does not verify",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "claimsSettled=9 fails against the same root and proof path",
+        "ok": true
+      },
+      {
+        "n": 11,
+        "actor": "RegulatorMSP",
+        "action": "closePeriod again",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "period 2026Q1-POOL-A is already closed; totals are not restated in place",
+        "ok": true,
+        "comment": "a closed period is not restated in place"
+      }
+    ],
+    "passed": true,
+    "summary": "Root f6f9f073141d committed; a restated figure fails verification."
+  },
+  {
+    "id": "S11",
+    "title": "Access control and the world state",
+    "criterion": "Privacy \u0026 Security",
+    "claim": "Roles are structural, and no on-chain field is protected health information on its own.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 2,
+        "actor": "ClinicalMSP",
+        "action": "attestEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 3,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 4,
+        "actor": "InsurerAMSP",
+        "action": "createEntitlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 5,
+        "actor": "InsurerAMSP",
+        "action": "adjudicate",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 6,
+        "actor": "InsurerAMSP",
+        "action": "authoriseSettlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 7,
+        "actor": "ProviderMSP",
+        "action": "createEntitlement (as the payee)",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "organisation ProviderMSP holds class PROVIDER and may not call this function",
+        "ok": true,
+        "comment": "a provider opens and attests but cannot authorise its own payment"
+      },
+      {
+        "n": 8,
+        "actor": "FieldMSP",
+        "action": "openEvent (as a field agent)",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "organisation FieldMSP holds class FIELD and may not call this function",
+        "ok": true,
+        "comment": "field verifiers attest but never assert"
+      },
+      {
+        "n": 9,
+        "actor": "InsurerBMSP",
+        "action": "adjudicate a competitor's entitlement",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "entitlement f6b3ec266b0efaebe3a2918585a26f94d1884b7e718541640b0958ce6788cade belongs to InsurerAMSP",
+        "ok": true,
+        "comment": "insurers adjudicate only their own policies"
+      },
+      {
+        "n": 10,
+        "actor": "StrangerMSP",
+        "action": "openEvent (non-member)",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "organisation \"StrangerMSP\" is not a member of this network",
+        "ok": true
+      },
+      {
+        "n": 11,
+        "actor": "public",
+        "action": "the entire world state holds no identifier",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "53 keys scanned, 0 identifier-shaped values found",
+        "ok": true
+      }
+    ],
+    "passed": true,
+    "summary": "Four out-of-role calls refused; 53 world-state keys scanned clean."
+  },
+  {
+    "id": "S12",
+    "title": "Payout instructions are payload-bound",
+    "criterion": "Architecture",
+    "claim": "Disbursement crosses a boundary the ledger does not control.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "ProviderMSP",
+        "action": "openEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 2,
+        "actor": "ClinicalMSP",
+        "action": "attestEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 3,
+        "actor": "ProviderMSP",
+        "action": "closeEvent",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 4,
+        "actor": "InsurerAMSP",
+        "action": "createEntitlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 5,
+        "actor": "InsurerAMSP",
+        "action": "adjudicate",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 6,
+        "actor": "InsurerAMSP",
+        "action": "settle without a request identifier",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "a settlement reference is required so the payout instruction is payload-bound",
+        "ok": true,
+        "comment": "an instruction that is not payload-bound cannot be safely retried, so it is refused"
+      },
+      {
+        "n": 7,
+        "actor": "InsurerAMSP",
+        "action": "authoriseSettlement",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "the ledger authorises payment; the MFS adapter executes it against this request identifier"
+      },
+      {
+        "n": 8,
+        "actor": "InsurerAMSP",
+        "action": "authoriseSettlement",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "invariant (9) violated: entitlement is already consumed and cannot be re-opened",
+        "ok": true,
+        "comment": "re-authorising a consumed entitlement is refused, whatever request identifier is offered"
+      }
+    ],
+    "passed": true,
+    "summary": "Settlement carries a payload-bound reference and cannot be re-authorised."
+  },
+  {
+    "id": "G1",
+    "title": "Governance caps bind, not describe",
+    "criterion": "Governance",
+    "claim": "Admission is gated on measured decentralisation, computed on-chain.",
+    "steps": [
+      {
+        "n": 1,
+        "actor": "AcademicMSP",
+        "action": "published metrics match the charter",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "Nakamoto Coefficient 3, Gini 0.1400",
+        "ok": true
+      },
+      {
+        "n": 2,
+        "actor": "InsurerAMSP",
+        "action": "proposeAdmission breaching the 0.30 cap",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "proposal refused: class INSURERS would hold 0.35 of the vote; the hard cap is 0.30",
+        "ok": true,
+        "comment": "refused before any vote: the council cannot vote itself past its own concentration limits"
+      },
+      {
+        "n": 3,
+        "actor": "InsurerAMSP",
+        "action": "proposeAdmission dropping the Nakamoto Coefficient to 2",
+        "expect": "refused",
+        "got": "refused",
+        "detail": "proposal refused: admission would drop the Nakamoto Coefficient to 2; the floor is 3, because at 2 two classes could form a majority",
+        "ok": true
+      },
+      {
+        "n": 4,
+        "actor": "InsurerAMSP",
+        "action": "proposeAdmission within the caps",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 5,
+        "actor": "InsurerAMSP",
+        "action": "vote",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 6,
+        "actor": "RegulatorMSP",
+        "action": "vote",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true
+      },
+      {
+        "n": 7,
+        "actor": "FieldMSP",
+        "action": "vote",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "committed",
+        "ok": true,
+        "comment": "0.30 + 0.20 + 0.20 = 0.70 clears the two-thirds threshold"
+      },
+      {
+        "n": 8,
+        "actor": "AcademicMSP",
+        "action": "the admitted council still satisfies the caps",
+        "expect": "accepted",
+        "got": "accepted",
+        "detail": "6 classes, Nakamoto Coefficient 3, Gini 0.2000",
+        "ok": true
+      }
+    ],
+    "passed": true,
+    "summary": "Two breaching proposals refused; a compliant one carried at NC 3."
+  }
+]

@@ -1,0 +1,115 @@
+13 scenarios, analysed step by step
+
+  ID    RESULT  STEPS  REFUSED  TITLE
+  ----- ------- ----- --------  ----------------------------------------------
+  S1    PASS        7        0  Happy path: a claim settles
+  S2    PASS        4        1  Cross-insurer duplicate refused at commit
+  S3    PASS        5        1  Second entitlement on the same policy refused
+  S4    PASS       10        0  Genuine dual cover pays
+  S5    PASS        8        0  Transfer between facilities settles once
+  S6    PASS        9        0  Readmission inside the window links
+  S7    PASS        5        2  Payee cannot corroborate itself
+  S8    PASS        4        2  De-accredited provider cannot re-register clea
+  S9    PASS       11        2  Denying insurer cannot decide the appeal
+  S10   PASS       11        1  Period anchored; tampering detected
+  S11   PASS       11        4  Access control and the world state
+  S12   PASS        8        2  Payout instructions are payload-bound
+  G1    PASS        8        2  Governance caps bind, not describe
+
+  101 steps total: 17 refusals, 84 accepted
+
+========================================================================
+How the scenarios pass
+========================================================================
+
+  by producing a REFUSAL    9   S2, S3, S7, S8, S9, S10, S11, S12, G1
+  by SUCCEEDING             4   S1, S4, S5, S6
+
+  The second group is not the weaker one. A uniqueness rule that also
+  blocked a hospital transfer, a readmission or a second valid policy
+  would not be a stricter system -- it would be a broken one.
+
+========================================================================
+Every refusal, and the reason the ledger gave for it
+========================================================================
+
+  S2   step 2  (4)   openEvent
+       invariant (4) violated: subject already has open event cbfd58ecb75754ac7ed06d371d1260df8d550d12d
+  S3   step 5  (8)   createEntitlement
+       invariant (8) violated: entitlement fd36aa41cd8849f2395df03cd627d6269dd3de3398225e7bf7729abdcba2
+  S7   step 2  (6)   attestEvent
+       invariant (6) violated: class PROVIDER has already attested this event
+  S7   step 3  (6)   closeEvent
+       invariant (6) violated: attestations span 1 class(es), 2 required
+  S8   step 2   --   openEvent
+       asserter HOSP-PRIVATE-SVR was de-accredited on 1788338417 and may not open events
+  S8   step 3   --   accredit (re-registration)
+       provider HOSP-PRIVATE-SVR was de-accredited on 1788338417 for "upheld appeals above threshold" a
+  S9   step 6   --   deny without a code
+       a denial without a coded reason cannot be counted or appealed
+  S9   step 8   --   panelDecision on its own denial
+       conflict of interest: InsurerAMSP denied this entitlement and may not decide the appeal against 
+  S10  step 11  --   closePeriod again
+       period 2026Q1-POOL-A is already closed; totals are not restated in place
+  S11  step 7   --   createEntitlement (as the payee)
+       organisation ProviderMSP holds class PROVIDER and may not call this function
+  S11  step 8   --   openEvent (as a field agent)
+       organisation FieldMSP holds class FIELD and may not call this function
+  S11  step 9   --   adjudicate a competitor's entitlemen
+       entitlement f6b3ec266b0efaebe3a2918585a26f94d1884b7e718541640b0958ce6788cade belongs to InsurerA
+  S11  step 10  --   openEvent (non-member)
+       organisation "StrangerMSP" is not a member of this network
+  S12  step 6   --   settle without a request identifier
+       a settlement reference is required so the payout instruction is payload-bound
+  S12  step 8  (9)   authoriseSettlement
+       invariant (9) violated: entitlement is already consumed and cannot be re-opened
+  G1   step 2   --   proposeAdmission breaching the 0.30 
+       proposal refused: class INSURERS would hold 0.35 of the vote; the hard cap is 0.30
+  G1   step 3   --   proposeAdmission dropping the Nakamo
+       proposal refused: admission would drop the Nakamoto Coefficient to 2; the floor is 3, because at
+
+========================================================================
+Appendix A coverage — which equations does the HARNESS exercise?
+========================================================================
+
+  (2)  UNIT TEST ONLY   coordination of benefits — sum paid <= loss / cap
+        not demonstrated by any scenario
+  (4)  demonstrated   no two open events share a subject commitment
+        1 refusal(s) in the harness
+  (5)  UNIT TEST ONLY   a continuation preserves the subject and is not consumed
+        not demonstrated by any scenario
+  (6)  demonstrated   eligibility spans at least two attesting classes
+        2 refusal(s) in the harness
+  (7)  unit test       at least one attestation is not from the payee
+        not reachable here — see below
+  (8)  demonstrated   at most one entitlement per (event, policy) pair
+        1 refusal(s) in the harness
+  (9)  demonstrated   settlement needs an eligible event, a valid policy, no re-open
+        1 refusal(s) in the harness
+
+  Documented as not reachable by an integration scenario:
+    (7)  implied by (6) under every domain profile in the paper, since each has exactly one payee class and attestEvent refuses a repeated class. Covered directly by TestInvariant_NonPayeeAttestationRequired. See docs/FINDINGS.md section 3.
+
+  GAP: (2), (5) refuse correctly in the Go unit suite but no
+  scenario shows it. The unit tests cover them, so this is not a
+  correctness problem -- it is a demonstration that is thinner than
+  it could be. Worth a scenario each if the video has room.
+
+  12 refusal(s) cite no invariant number. That is expected for
+  access-control and governance refusals, which are not Appendix A rules:
+    S8 step 2: openEvent
+    S8 step 3: accredit (re-registration)
+    S9 step 6: deny without a code
+    S9 step 8: panelDecision on its own denial
+    S10 step 11: closePeriod again
+    S11 step 7: createEntitlement (as the payee)
+    S11 step 8: openEvent (as a field agent)
+    S11 step 9: adjudicate a competitor's entitlement
+    S11 step 10: openEvent (non-member)
+    S12 step 6: settle without a request identifier
+    G1 step 2: proposeAdmission breaching the 0.30 cap
+    G1 step 3: proposeAdmission dropping the Nakamoto Coefficient to 2
+
+========================================================================
+PASSED — every step matched its asserted outcome
+========================================================================

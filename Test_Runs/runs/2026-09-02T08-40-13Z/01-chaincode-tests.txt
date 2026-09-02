@@ -1,0 +1,52 @@
+?   	github.com/obhoy/obhoycc/cmd/chaincode	[no test files]
+?   	github.com/obhoy/obhoycc/cmd/localnode	[no test files]
+?   	github.com/obhoy/obhoycc/internal/scenarios	[no test files]
+?   	github.com/obhoy/obhoycc/internal/httpapi	[no test files]
+?   	github.com/obhoy/obhoycc/internal/ledgerstub	[no test files]
+?   	github.com/obhoy/obhoycc/invariants	[no test files]
+?   	github.com/obhoy/obhoycc/cmd/scenarios	[no test files]
+?   	github.com/obhoy/obhoycc/model	[no test files]
+=== RUN   TestGovernanceMetrics_MatchThePaper
+--- PASS: TestGovernanceMetrics_MatchThePaper (0.00s)
+=== RUN   TestGovernance_RejectsAdmissionBreachingCaps
+--- PASS: TestGovernance_RejectsAdmissionBreachingCaps (0.00s)
+=== RUN   TestGovernance_CompliantAdmissionCarriesOnSupermajority
+--- PASS: TestGovernance_CompliantAdmissionCarriesOnSupermajority (0.00s)
+=== RUN   TestDeAccreditedProvider_CannotAssertOrReRegister
+--- PASS: TestDeAccreditedProvider_CannotAssertOrReRegister (0.00s)
+=== RUN   TestAppeal_DenyingInsurerCannotDecide
+--- PASS: TestAppeal_DenyingInsurerCannotDecide (0.00s)
+=== RUN   TestTransparency_PeriodClosesAndProofVerifies
+--- PASS: TestTransparency_PeriodClosesAndProofVerifies (0.00s)
+=== RUN   TestAccessControl_ClassCannotActOutsideItsRole
+--- PASS: TestAccessControl_ClassCannotActOutsideItsRole (0.00s)
+=== RUN   TestWorldState_HoldsNoIdentifiers
+--- PASS: TestWorldState_HoldsNoIdentifiers (0.00s)
+=== RUN   TestOpenEvent_RefusesDuplicateKey
+--- PASS: TestOpenEvent_RefusesDuplicateKey (0.00s)
+=== RUN   TestOpenEvent_RefusesCrossInsurerDuplicate
+--- PASS: TestOpenEvent_RefusesCrossInsurerDuplicate (0.00s)
+=== RUN   TestOpenEvent_RefusesConsumedKey
+--- PASS: TestOpenEvent_RefusesConsumedKey (0.00s)
+=== RUN   TestContinueEvent_SameSubjectUnsettled
+--- PASS: TestContinueEvent_SameSubjectUnsettled (0.00s)
+=== RUN   TestCloseEvent_RefusesSingleClass
+--- PASS: TestCloseEvent_RefusesSingleClass (0.00s)
+=== RUN   TestCloseEvent_PayeeCannotFillQuorumAlone
+--- PASS: TestCloseEvent_PayeeCannotFillQuorumAlone (0.00s)
+=== RUN   TestInvariant_NonPayeeAttestationRequired
+--- PASS: TestInvariant_NonPayeeAttestationRequired (0.00s)
+=== RUN   TestEntitlement_RefusesSecondOnSamePolicy
+--- PASS: TestEntitlement_RefusesSecondOnSamePolicy (0.00s)
+=== RUN   TestSettle_RefusesReopenedOrLapsed
+--- PASS: TestSettle_RefusesReopenedOrLapsed (0.00s)
+=== RUN   TestCOB_CapsIndemnityAndFixedSeparately
+--- PASS: TestCOB_CapsIndemnityAndFixedSeparately (0.00s)
+=== RUN   TestTransfer_Settles
+--- PASS: TestTransfer_Settles (0.00s)
+=== RUN   TestReadmission_SettlesOnce
+--- PASS: TestReadmission_SettlesOnce (0.00s)
+=== RUN   TestDualCover_BothPoliciesSettle
+--- PASS: TestDualCover_BothPoliciesSettle (0.00s)
+PASS
+ok  	github.com/obhoy/obhoycc/contracts	(cached)

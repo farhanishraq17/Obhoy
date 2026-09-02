@@ -212,7 +212,7 @@ Run the whole set from the **Harness** tab, or:
 | S12 | Payout instructions are payload-bound | Architecture |
 | G1 | Governance caps bind, not describe | Governance |
 
-Eight of these pass by producing a refusal. If you have time for only one, it is
+Nine of these pass by producing a refusal. If you have time for only one, it is
 S2 — and if you have time for two, the second is S4, because it is the one that
 shows the mechanism is not simply strict.
 

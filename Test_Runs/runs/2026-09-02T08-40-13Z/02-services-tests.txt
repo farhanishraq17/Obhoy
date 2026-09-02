@@ -1,0 +1,15 @@
+✔ K1: any two of three shares reconstruct the key, and one alone does not (1.6415ms)
+✔ K1: three of three also reconstruct, and a repeated share is refused (0.3079ms)
+✔ K1: a share reveals nothing about the secret (0.4502ms)
+✔ the commitment is a keyed PRF, not a bare hash of the identifier (0.3821ms)
+✔ the Merkle root here matches the one the chaincode builds (0.3414ms)
+✔ period leaves are ordered, and denial reasons are sorted (0.3414ms)
+✔ a changed figure produces a different root (0.1986ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 86.5227

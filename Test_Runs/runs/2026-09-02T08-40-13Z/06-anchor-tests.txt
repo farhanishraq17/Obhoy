@@ -1,0 +1,14 @@
+
+
+  ObhoyAnchor
+    ✔ anchors a period and reports it back
+    ✔ refuses to re-anchor a period
+    ✔ refuses an empty root
+    ✔ refuses a caller who is not an anchorer
+    ✔ spreads the permission across more than one party
+    ✔ verifies a claimed figure and rejects a restated one
+    ✔ only the admin changes the anchorer set
+
+
+  7 passing (362ms)
+
