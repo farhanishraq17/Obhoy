@@ -8,21 +8,24 @@ export interface ValidationResult {
 }
 
 /**
- * Invariant 1: No two OPEN events can share the same uniqueness key H(NID || window).
+ * Invariant 1: No two events can share the same uniqueness key H(NID || window).
  */
 export function validateEventUniqueness(
   existingEvents: InsurableEvent[],
-  eventKey: string
+  eventKey: string,
+  admissionWindow?: string,
+  userCommitment?: string
 ): ValidationResult {
   const duplicate = existingEvents.find(
-    (e) => e.eventKey === eventKey && (e.status === 'OPEN' || e.status === 'CLOSED_ELIGIBLE')
+    (e) => (e.eventKey === eventKey || (admissionWindow && e.admissionWindow === admissionWindow && (!userCommitment || e.holderNIDCommitment === userCommitment))) &&
+           (e.status === 'OPEN' || e.status === 'CLOSED_ELIGIBLE')
   );
 
   if (duplicate) {
     return {
       valid: false,
       code: 'ERR_DUPLICATE_OPEN_EVENT',
-      reason: `An active insurable event (${duplicate.id}) already exists for this identity commitment and admission window.`,
+      reason: `An active insurable event (${duplicate.id}) already exists for this identity commitment and admission window (${duplicate.admissionWindow}).`,
     };
   }
 

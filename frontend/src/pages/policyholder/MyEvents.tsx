@@ -6,11 +6,20 @@ import { Button } from '../../components/ui/Button';
 import { Timeline } from '../../components/ui/Timeline';
 import { QuorumIndicator } from '../../components/workflow/QuorumIndicator';
 import { useSimulationStore } from '../../store/simulationStore';
-import { CheckCircle2 } from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
+import { CheckCircle2, UserCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const MyEvents: React.FC = () => {
+  const { currentUser } = useAuthStore();
   const { events, entitlements, settlements } = useSimulationStore();
+
+  const userEvents = events.filter(
+    (e) =>
+      e.holderId === currentUser.id ||
+      e.holderNIDCommitment === currentUser.nidCommitment ||
+      (currentUser.name && e.holderName?.toLowerCase() === currentUser.name.toLowerCase())
+  );
 
   return (
     <PageContainer>
@@ -18,16 +27,21 @@ export const MyEvents: React.FC = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold text-slate-900">My Insurable Events</h1>
-            <p className="text-xs text-slate-500 font-mono">Hospital admissions & multi-class attestation status</p>
+            <p className="text-xs text-slate-500 font-mono">
+              Hospital admissions & attestation status for <span className="text-teal-700 font-bold">{currentUser.name}</span> ({currentUser.holderNumber || 'Member'})
+            </p>
           </div>
         </div>
 
-        {events.length === 0 ? (
-          <Card className="text-center py-12 text-slate-500 text-xs">
-            No events created yet. Switch to Provider view to open an event.
+        {userEvents.length === 0 ? (
+          <Card className="text-center py-12 space-y-2 text-slate-500 text-xs">
+            <p className="font-semibold text-slate-700">No active or past hospital events found for your account.</p>
+            <p className="text-slate-400">
+              When an accredited provider asserts a covered hospital admission under your NID commitment, it will immediately appear here.
+            </p>
           </Card>
         ) : (
-          events.map((evt) => {
+          userEvents.map((evt) => {
             const eventEntitlement = entitlements.find((e) => e.eventId === evt.id);
             const eventSettlement = eventEntitlement ? settlements.find((s) => s.entitlementId === eventEntitlement.id) : null;
 

@@ -14,8 +14,8 @@ import {
 } from '../simulation/transitions';
 import { prepareScenarioState } from '../simulation/scenarioRunner';
 import { loadStoredState, saveStoredState } from '../lib/storage';
-import { generateId } from '../lib/ids';
-import { formatDateTime } from '../lib/dates';
+import { generateId, computeEventKey } from '../lib/ids';
+import { formatDateTime, getCurrentAdmissionWindow } from '../lib/dates';
 import { ScenarioId } from '../types/simulation';
 import { api, FabricMSP } from '../lib/api';
 
@@ -137,59 +137,81 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       appeals: get().appeals,
     };
 
-    // 1. First attempt to call the real backend / commitment service
+    const window = admissionTimestamp
+      ? (admissionTimestamp.includes('T') ? admissionTimestamp.split('T')[0] : admissionTimestamp.slice(0, 10))
+      : getCurrentAdmissionWindow();
+
+    const currentCommitment = user.nidCommitment;
+    const computedKey = computeEventKey(currentCommitment, window);
+
+    // 1. Check if an event already exists for this subject with the SAME admission window
+    const matchingDuplicate = currentState.events.find(
+      (e) => (e.admissionWindow === window || e.eventKey === computedKey) &&
+             (e.status === 'OPEN' || e.status === 'CLOSED_ELIGIBLE')
+    );
+
+    if (matchingDuplicate) {
+      return {
+        success: false,
+        code: 'ERR_DUPLICATE_OPEN_EVENT',
+        message: `Deterministic uniqueness key H(SubjectCommitment || admissionWindow) refused duplicate creation for admission window ${window}.`,
+      };
+    }
+
+    // 2. Different date: proceed with opening a new event
     try {
-      let commitment = user.nidCommitment;
-      if (user.nid) {
-        // Call off-chain commitment service (:7560)
-        const commitRes = await api.offchain.commit(user.nid, 'event');
-        if (commitRes.ok && commitRes.commitment) {
-          commitment = commitRes.commitment;
+      if (get().backendConnected) {
+        const providerMspMap: Record<string, string> = {
+          'PRV-UPAZILA-101': 'HOSP-UPAZILA-KLG',
+          'PRV-DISTRICT-202': 'HOSP-DISTRICT-GZP',
+          'PRV-FLAGGED-303': 'HOSP-PRIVATE-SVR',
+        };
+        const chainProviderId = providerMspMap[provider.id] || 'HOSP-UPAZILA-KLG';
+
+        let chainCategory = 'H-SURG-03';
+        if (category?.includes('Appendicitis') || category?.includes('Surgery')) chainCategory = 'H-SURG-03';
+        else if (category?.includes('Fracture') || category?.includes('Leg')) chainCategory = 'H-INJ-05';
+        else if (category?.includes('Pneumonia') || category?.includes('RESP')) chainCategory = 'H-RESP-02';
+        else if (category?.includes('Cardiac') || category?.includes('Heart')) chainCategory = 'H-CARD-01';
+
+        const openRes = await api.openEvent({
+          line: 'HEALTH',
+          subjectCommitment: currentCommitment,
+          admissionWindow: window,
+          asserterId: chainProviderId,
+          categoryCode: chainCategory,
+          assessedLoss: 4500000,
+          benefitCapAggregate: 5000000,
+        });
+
+        if (openRes.ok && openRes.result?.eventId) {
+          const chainEventId = openRes.result.eventId;
+          const { nextState, result } = openEventTransition(currentState, user, provider, diagnosisCode, category, admissionTimestamp);
+          if (result.success && nextState.events.length > 0) {
+            nextState.events[0].id = chainEventId;
+            saveStoredState(nextState);
+            set(nextState);
+          }
+          return { success: true, eventId: chainEventId, message: 'Event successfully opened on ledger.' };
+        } else if (openRes.error?.includes('already exists in state') || openRes.error?.includes('a consumed key is never re-opened')) {
+          return {
+            success: false,
+            code: 'ERR_DUPLICATE_OPEN_EVENT',
+            message: openRes.error,
+          };
         }
       }
-
-      const admissionWindow = admissionTimestamp
-        ? new Date(admissionTimestamp).toISOString().slice(0, 10)
-        : new Date().toISOString().slice(0, 10);
-
-      const openRes = await api.openEvent({
-        line: 'HEALTH',
-        subjectCommitment: commitment,
-        admissionWindow,
-        asserterId: provider.id,
-        categoryCode: category || diagnosisCode || 'CAT-SURGERY-MAJOR',
-        assessedLoss: 5000000,
-        benefitCapAggregate: 5000000,
-      });
-
-      if (!openRes.ok) {
-        // Backend refused (e.g. duplicate event invariant!)
-        return {
-          success: false,
-          code: 'DUPLICATE_EVENT_COMMITTED',
-          message: openRes.error || 'Event creation refused by blockchain invariant (open event already exists).',
-        };
-      }
-
-      const chainEventId = openRes.result?.eventId || generateId('EVT');
-
-      // Create local state transition with the confirmed chain event ID
-      const { nextState, result } = openEventTransition(currentState, user, provider, diagnosisCode, category, admissionTimestamp);
-      if (result.success && nextState.events.length > 0) {
-        nextState.events[0].id = chainEventId;
-        saveStoredState(nextState);
-        set(nextState);
-      }
-      return { success: true, eventId: chainEventId, message: 'Event successfully opened on ledger.' };
-    } catch (err: any) {
-      // Fallback to local simulation if node is not running
-      const { nextState, result } = openEventTransition(currentState, user, provider, diagnosisCode, category, admissionTimestamp);
-      if (result.success) {
-        saveStoredState(nextState);
-        set(nextState);
-      }
-      return result;
+    } catch {
+      // Backend error fallback to local transition
     }
+
+    // Local state transition: Create new event
+    const { nextState, result } = openEventTransition(currentState, user, provider, diagnosisCode, category, admissionTimestamp);
+    if (result.success) {
+      saveStoredState(nextState);
+      set(nextState);
+    }
+    return result;
   },
 
   continueEvent: async (eventId, provider, notes) => {

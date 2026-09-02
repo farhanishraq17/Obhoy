@@ -10,6 +10,7 @@ import { useUIStore } from '../../store/uiStore';
 import { MOCK_USERS } from '../../data/users';
 import { UserProfile } from '../../types/actor';
 import { Stethoscope, ShieldAlert, CheckCircle2, Lock, ArrowRight, RotateCcw, Cpu, UserCheck } from 'lucide-react';
+import { computeEventKey } from '../../lib/ids';
 
 export const AssertEvent: React.FC = () => {
   const navigate = useNavigate();
@@ -39,9 +40,33 @@ export const AssertEvent: React.FC = () => {
       const result = await openEvent(selectedUser, currentProvider, diagnosisCode, diagnosisCategory, admissionTimestamp);
       setIsCheckingUniqueness(false);
 
+      const inputWindow = admissionTimestamp
+        ? (admissionTimestamp.includes('T') ? admissionTimestamp.split('T')[0] : admissionTimestamp.slice(0, 10))
+        : '';
+
       if (!result.success) {
-        const existing = events.find((e) => e.status === 'OPEN' || e.status === 'CLOSED_ELIGIBLE') || events[0];
-        setDuplicateEvent(existing);
+        const matching = events.find(
+          (e) => (e.admissionWindow === inputWindow || e.eventKey === computeEventKey(selectedUser.nidCommitment, inputWindow)) &&
+                 (e.status === 'OPEN' || e.status === 'CLOSED_ELIGIBLE')
+        ) || events.find((e) => e.admissionWindow === inputWindow) || {
+          id: 'EVT-DUP',
+          eventKey: computeEventKey(selectedUser.nidCommitment, inputWindow),
+          holderId: selectedUser.id,
+          holderName: selectedUser.name,
+          holderNIDCommitment: selectedUser.nidCommitment,
+          admissionWindow: inputWindow,
+          providerId: currentProvider.id,
+          facilityName: currentProvider.name,
+          status: 'CLOSED_ELIGIBLE',
+          diagnosisCategory,
+          diagnosisCode,
+          segments: [],
+          attestations: [],
+          timeline: [],
+          createdAt: new Date().toISOString(),
+        };
+
+        setDuplicateEvent(matching);
         setActiveStepIndex(4);
         showToast(result.message || 'Duplicate admission detected! Refused at commit by blockchain invariant.', 'error');
       } else {
@@ -53,6 +78,7 @@ export const AssertEvent: React.FC = () => {
     } catch (err: any) {
       setIsCheckingUniqueness(false);
       showToast(err.message || 'Failed to open event', 'error');
+      setActiveStepIndex(2);
     }
   };
 

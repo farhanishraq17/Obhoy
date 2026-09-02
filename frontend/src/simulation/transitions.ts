@@ -25,11 +25,13 @@ export function openEventTransition(
   diagnosisCategory: string = 'Acute Appendicitis Hospitalization',
   admissionTimestamp?: string
 ): { nextState: TransitionState; result: { success: boolean; eventId?: string; message: string; code?: string } } {
-  const window = admissionTimestamp ? admissionTimestamp.split('T')[0] : getCurrentAdmissionWindow();
+  const window = admissionTimestamp
+    ? (admissionTimestamp.includes('T') ? admissionTimestamp.split('T')[0] : admissionTimestamp.slice(0, 10))
+    : getCurrentAdmissionWindow();
   const eventKey = computeEventKey(user.nidCommitment, window);
 
   // Validate uniqueness
-  const uniquenessCheck = validateEventUniqueness(state.events, eventKey);
+  const uniquenessCheck = validateEventUniqueness(state.events, eventKey, window, user.nidCommitment);
   if (!uniquenessCheck.valid) {
     return {
       nextState: state,

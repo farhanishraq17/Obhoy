@@ -17,6 +17,7 @@ export interface UserProfile {
   upazila: string;
   district: string;
   nidCommitment: string;
+  holderNumber?: string;
   subjectReference?: string;
   policyId?: string;
   coverageStatus?: string;

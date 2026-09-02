@@ -14,6 +14,6 @@ export const useUIStore = create<UIState>((set) => ({
   toastMessage: null,
 
   setScenario: (scenarioId) => set({ currentScenarioId: scenarioId }),
-  showToast: (text, type = 'info') => set({ toastMessage: { text, type } }),
+  showToast: () => {},
   clearToast: () => set({ toastMessage: null }),
 }));

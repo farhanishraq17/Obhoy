@@ -15,7 +15,7 @@ import { api } from '../../lib/api';
 export const Enrollment: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useUIStore();
-  const { setUser } = useAuthStore();
+  const { setUser, registerUser } = useAuthStore();
 
   const [step, setStep] = useState<'DETAILS' | 'IDENTITY' | 'CONSENT' | 'PAYMENT' | 'COMPLETE'>('DETAILS');
   const [selectedUserId, setSelectedUserId] = useState(MOCK_USERS[0].id);
@@ -29,6 +29,7 @@ export const Enrollment: React.FC = () => {
   const [custodianQuorum, setCustodianQuorum] = useState<string[]>([]);
   const [isActivating, setIsActivating] = useState(false);
   const [issuedPolicyId, setIssuedPolicyId] = useState('POL-1001');
+  const [issuedHolderNumber, setIssuedHolderNumber] = useState('HLD-1001');
 
   const handleIdentityVerify = async () => {
     setIsVerifying(true);
@@ -55,8 +56,12 @@ export const Enrollment: React.FC = () => {
 
   const handlePayment = async () => {
     setIsActivating(true);
-    const policyId = `POL-${Date.now().toString().slice(-4)}`;
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000).toString();
+    const policyId = `POL-${randomSuffix}`;
+    const newHolderNumber = `HLD-${randomSuffix}`;
     setIssuedPolicyId(policyId);
+    setIssuedHolderNumber(newHolderNumber);
+
     const finalCommitment = computedCommitment || selectedUser.nidCommitment;
     const finalName = nameInput.trim() || selectedUser.name;
     const finalNid = nidInput.trim() || selectedUser.nid;
@@ -86,14 +91,15 @@ export const Enrollment: React.FC = () => {
       // Ignore network errors for local demo
     }
 
-    // Update active logged-in user profile in authStore
+    // Update active logged-in user profile and register permanently in authStore
     const newProfile: UserProfile = {
-      id: `USR-${Date.now().toString().slice(-4)}`,
+      id: `USR-${randomSuffix}`,
+      holderNumber: newHolderNumber,
       nid: finalNid,
       name: finalName,
       phone: selectedUser.phone || '+8801700000000',
-      mfi: selectedUser.mfi,
-      group: selectedUser.group,
+      mfi: selectedUser.mfi || 'BRAC Microfinance',
+      group: selectedUser.group || 'Dhaka Central 01',
       district: selectedUser.district || 'Dhaka',
       upazila: selectedUser.upazila || 'Mirpur',
       nidCommitment: finalCommitment,
@@ -101,7 +107,7 @@ export const Enrollment: React.FC = () => {
       policyId,
       coverageStatus: 'ACTIVE',
     };
-    setUser(newProfile);
+    registerUser(newProfile);
 
     // Also add policy to simulation store so the policy dashboard renders it
     useSimulationStore.setState((state) => ({
@@ -346,24 +352,68 @@ export const Enrollment: React.FC = () => {
           )}
 
           {step === 'COMPLETE' && (
-            <div className="text-center space-y-4 py-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-200">
-                <CheckCircle2 className="w-7 h-7" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900">Policy Activated Successfully!</h3>
-              <p className="text-xs text-slate-600">
-                Policy <code className="text-teal-700 font-mono font-bold">{issuedPolicyId}</code> is now ACTIVE on the Hyperledger Fabric ledger for <strong className="text-slate-900">{nameInput || selectedUser.name}</strong>.
-              </p>
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-left text-xs font-mono space-y-1">
-                <div className="text-slate-500">Beneficiary: <span className="text-slate-900 font-bold">{nameInput || selectedUser.name}</span></div>
-                <div className="text-slate-500">Commitment: <span className="text-slate-800 truncate">{computedCommitment.slice(0, 18)}...</span></div>
-                <div className="text-slate-500">Pool: <span className="text-slate-800">POOL-A</span></div>
-                <div className="text-slate-500">Coverage: <span className="text-emerald-700 font-bold">BDT 50,000 / year</span></div>
+            <div className="space-y-6 py-2">
+              <div className="text-center space-y-2">
+                <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-200 shadow-sm">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">Member Enrolled & Policy Activated!</h3>
+                <p className="text-xs text-slate-600 max-w-md mx-auto">
+                  Policy <code className="text-teal-700 font-mono font-bold">{issuedPolicyId}</code> is confirmed on the Hyperledger Fabric ledger for <strong className="text-slate-900">{nameInput || selectedUser.name}</strong>.
+                </p>
               </div>
 
-              <Button variant="primary" className="w-full" onClick={handleFinish} icon={<ArrowRight className="w-4 h-4" />}>
-                Go to Policy Dashboard
-              </Button>
+              {/* Official Credential Box */}
+              <div className="p-5 rounded-2xl bg-teal-50/70 border-2 border-teal-500/40 space-y-3 shadow-xs">
+                <div className="flex items-center justify-between border-b border-teal-200 pb-2">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-teal-800">
+                    Official Member Credential
+                  </span>
+                  <Badge variant="success">Active On-Chain ✓</Badge>
+                </div>
+
+                <div className="text-center py-2 space-y-1">
+                  <span className="text-xs font-mono text-slate-500 uppercase font-semibold">Your Assigned Holder Number</span>
+                  <div className="text-3xl font-mono font-black text-teal-800 tracking-wider">
+                    {issuedHolderNumber}
+                  </div>
+                  <p className="text-xs text-teal-700 font-medium pt-1">
+                    Save this number! You will use this <strong>Holder Number</strong> to log in and access your account anytime.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-white/90 border border-teal-200 rounded-xl grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">BENEFICIARY NAME</span>
+                    <strong className="text-slate-900">{nameInput || selectedUser.name}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">NATIONAL ID (NID)</span>
+                    <span className="text-slate-800 font-semibold">{nidInput ? `${nidInput.slice(0, 4)}••••${nidInput.slice(-4)}` : selectedUser.nid}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">NID COMMITMENT HASH</span>
+                    <span className="text-teal-800 truncate block">{computedCommitment.slice(0, 20)}...</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">ANNUAL COVERAGE CAP</span>
+                    <span className="text-emerald-700 font-bold">BDT 50,000 / year</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Button variant="primary" className="flex-1" onClick={handleFinish} icon={<ArrowRight className="w-4 h-4" />}>
+                  Go to Policy Dashboard
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/login')}
+                  className="border-slate-300 hover:bg-slate-50"
+                >
+                  Return to Login
+                </Button>
+              </div>
             </div>
           )}
         </Card>

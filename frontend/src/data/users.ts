@@ -3,6 +3,7 @@ import { UserProfile } from '../types/actor';
 export const MOCK_USERS: UserProfile[] = [
   {
     id: 'USR-RAHIM-1001',
+    holderNumber: 'HLD-1001',
     nid: '19922691458000312',
     name: 'Rahim Uddin',
     phone: '+8801711223344',
@@ -17,6 +18,7 @@ export const MOCK_USERS: UserProfile[] = [
   },
   {
     id: 'USR-FATEMA-1002',
+    holderNumber: 'HLD-1002',
     nid: '19853381940001884',
     name: 'Fatema Begum',
     phone: '+8801822334455',
@@ -31,6 +33,7 @@ export const MOCK_USERS: UserProfile[] = [
   },
   {
     id: 'USR-KARIM-1003',
+    holderNumber: 'HLD-1003',
     nid: '19794420193005912',
     name: 'Karim Ahmed',
     phone: '+8801933445566',
