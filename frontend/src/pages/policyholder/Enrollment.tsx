@@ -5,16 +5,22 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useUIStore } from '../../store/uiStore';
+import { useAuthStore } from '../../store/authStore';
+import { useSimulationStore } from '../../store/simulationStore';
 import { MOCK_USERS } from '../../data/users';
+import { UserProfile } from '../../types/actor';
 import { UserCheck, ShieldCheck, CreditCard, CheckCircle2, ArrowRight, Lock, Key } from 'lucide-react';
 import { api } from '../../lib/api';
 
 export const Enrollment: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useUIStore();
+  const { setUser } = useAuthStore();
 
   const [step, setStep] = useState<'DETAILS' | 'IDENTITY' | 'CONSENT' | 'PAYMENT' | 'COMPLETE'>('DETAILS');
+  const [selectedUserId, setSelectedUserId] = useState(MOCK_USERS[0].id);
   const [selectedUser, setSelectedUser] = useState(MOCK_USERS[0]);
+  const [nameInput, setNameInput] = useState(MOCK_USERS[0].name);
   const [nidInput, setNidInput] = useState(MOCK_USERS[0].nid);
   const [dobInput, setDobInput] = useState('1992-05-14');
   const [selectedRail, setSelectedRail] = useState('bKash');
@@ -51,11 +57,14 @@ export const Enrollment: React.FC = () => {
     setIsActivating(true);
     const policyId = `POL-${Date.now().toString().slice(-4)}`;
     setIssuedPolicyId(policyId);
+    const finalCommitment = computedCommitment || selectedUser.nidCommitment;
+    const finalName = nameInput.trim() || selectedUser.name;
+    const finalNid = nidInput.trim() || selectedUser.nid;
 
     try {
       // Step 2: Register commitment on ledger
       await api.registerSubject({
-        commitment: computedCommitment || selectedUser.nidCommitment,
+        commitment: finalCommitment,
         keyVersion: 1,
         aggregatorId: 'MFI-BRAC',
         context: 'policy',
@@ -65,7 +74,7 @@ export const Enrollment: React.FC = () => {
       const nowSec = Math.floor(Date.now() / 1000);
       await api.issuePolicy({
         policyId,
-        subjectCommitment: computedCommitment || selectedUser.nidCommitment,
+        subjectCommitment: finalCommitment,
         poolId: 'POOL-A',
         type: 'INDEMNITY',
         benefitCap: 5000000, // 50,000 BDT in paisa
@@ -77,9 +86,49 @@ export const Enrollment: React.FC = () => {
       // Ignore network errors for local demo
     }
 
+    // Update active logged-in user profile in authStore
+    const newProfile: UserProfile = {
+      id: `USR-${Date.now().toString().slice(-4)}`,
+      nid: finalNid,
+      name: finalName,
+      phone: selectedUser.phone || '+8801700000000',
+      mfi: selectedUser.mfi,
+      group: selectedUser.group,
+      district: selectedUser.district || 'Dhaka',
+      upazila: selectedUser.upazila || 'Mirpur',
+      nidCommitment: finalCommitment,
+      subjectReference: `SUBJ-••••${finalCommitment.slice(-4).toUpperCase()}`,
+      policyId,
+      coverageStatus: 'ACTIVE',
+    };
+    setUser(newProfile);
+
+    // Also add policy to simulation store so the policy dashboard renders it
+    useSimulationStore.setState((state) => ({
+      policies: [
+        {
+          id: policyId,
+          holderId: newProfile.id,
+          holderName: newProfile.name,
+          holderNID: newProfile.nid,
+          insurerId: 'INS-01',
+          insurerName: 'Green Delta Insurance PLC',
+          product: 'Catastrophic Hospitalization Protection',
+          benefitCap: 50000,
+          scheduleVersion: 'v1.2-2026',
+          status: 'ACTIVE',
+          startDate: new Date().toISOString().slice(0, 10),
+          endDate: new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+          premiumBDT: 1200,
+          paymentMethod: selectedRail,
+        },
+        ...state.policies,
+      ],
+    }));
+
     setIsActivating(false);
     setStep('COMPLETE');
-    showToast(`Policy ${policyId} Activated On-Chain!`, 'success');
+    showToast(`Policy ${policyId} Activated On-Chain for ${finalName}!`, 'success');
   };
 
   const handleFinish = () => {
@@ -93,7 +142,7 @@ export const Enrollment: React.FC = () => {
           <Badge variant="success">Enrolment Wizard</Badge>
           <h1 className="text-2xl font-extrabold text-slate-900">Group Health Insurance Enrolment</h1>
           <p className="text-xs text-slate-500">
-            Microfinance Group Enrolment channel for {selectedUser.name} ({selectedUser.group})
+            Microfinance Group Enrolment channel for <span className="text-teal-700 font-bold">{nameInput || selectedUser.name}</span> ({selectedUser.group})
           </p>
         </div>
 
@@ -108,13 +157,20 @@ export const Enrollment: React.FC = () => {
 
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-slate-500 font-mono mb-1">Select Beneficiary Applicant:</label>
+                  <label className="block text-slate-500 font-mono mb-1">Preset Beneficiary Profile:</label>
                   <select
-                    value={selectedUser.id}
+                    value={selectedUserId}
                     onChange={(e) => {
-                      const matched = MOCK_USERS.find((u) => u.id === e.target.value) || MOCK_USERS[0];
-                      setSelectedUser(matched);
-                      setNidInput(matched.nid);
+                      setSelectedUserId(e.target.value);
+                      if (e.target.value === 'CUSTOM') {
+                        setNameInput('');
+                        setNidInput('');
+                      } else {
+                        const matched = MOCK_USERS.find((u) => u.id === e.target.value) || MOCK_USERS[0];
+                        setSelectedUser(matched);
+                        setNameInput(matched.name);
+                        setNidInput(matched.nid);
+                      }
                     }}
                     className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 font-bold"
                   >
@@ -123,8 +179,21 @@ export const Enrollment: React.FC = () => {
                         {u.name} ({u.group})
                       </option>
                     ))}
+                    <option value="CUSTOM">+ Enter Custom Applicant Name & NID</option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-slate-500 font-mono mb-1">Applicant Full Name:</label>
+                  <input
+                    type="text"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder="Enter full name"
+                    className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 font-bold"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-slate-500 font-mono mb-1">Microfinance Institution (MFI):</label>
                   <input
@@ -134,6 +203,7 @@ export const Enrollment: React.FC = () => {
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 font-semibold"
                   />
                 </div>
+
                 <div>
                   <label className="block text-slate-500 font-mono mb-1">Product Name:</label>
                   <input
@@ -198,6 +268,10 @@ export const Enrollment: React.FC = () => {
               <h3 className="text-sm font-bold text-slate-900">3. Policy Coverage Terms & Schedule</h3>
 
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span className="text-slate-500">Applicant:</span>
+                  <span className="font-bold text-slate-900">{nameInput || selectedUser.name}</span>
+                </div>
                 <div className="flex justify-between py-1 border-b border-slate-200">
                   <span className="text-slate-500">Insurer:</span>
                   <span className="font-bold text-slate-900">Green Delta Insurance PLC (Insurer A)</span>
@@ -278,9 +352,10 @@ export const Enrollment: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold text-slate-900">Policy Activated Successfully!</h3>
               <p className="text-xs text-slate-600">
-                Policy <code className="text-teal-700 font-mono font-bold">{issuedPolicyId}</code> is now ACTIVE on the Hyperledger Fabric ledger for {selectedUser.name}.
+                Policy <code className="text-teal-700 font-mono font-bold">{issuedPolicyId}</code> is now ACTIVE on the Hyperledger Fabric ledger for <strong className="text-slate-900">{nameInput || selectedUser.name}</strong>.
               </p>
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-left text-xs font-mono space-y-1">
+                <div className="text-slate-500">Beneficiary: <span className="text-slate-900 font-bold">{nameInput || selectedUser.name}</span></div>
                 <div className="text-slate-500">Commitment: <span className="text-slate-800 truncate">{computedCommitment.slice(0, 18)}...</span></div>
                 <div className="text-slate-500">Pool: <span className="text-slate-800">POOL-A</span></div>
                 <div className="text-slate-500">Coverage: <span className="text-emerald-700 font-bold">BDT 50,000 / year</span></div>

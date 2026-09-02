@@ -8,7 +8,7 @@ import { UserRole } from '../../types/actor';
 export const PublicNavbar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, currentRole, setRole, logout } = useAuthStore();
+  const { isAuthenticated, currentRole, currentUser, setRole, logout } = useAuthStore();
 
   const navLinks = [
     { label: 'Overview', path: '/' },
@@ -82,7 +82,7 @@ export const PublicNavbar: React.FC = () => {
                 onChange={handleRoleChange}
                 className="bg-transparent text-slate-800 text-xs font-semibold focus:outline-none cursor-pointer"
               >
-                <option value="POLICYHOLDER">Policyholder (Rahim)</option>
+                <option value="POLICYHOLDER">Policyholder ({currentUser?.name ? currentUser.name.split(' ')[0] : 'Beneficiary'})</option>
                 <option value="PROVIDER">Hospital Provider</option>
                 <option value="CLINICAL_VERIFIER">Clinical Verifier</option>
                 <option value="FIELD_VERIFIER">Field Verifier</option>

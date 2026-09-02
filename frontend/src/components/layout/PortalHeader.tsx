@@ -56,7 +56,7 @@ export const PortalHeader: React.FC = () => {
             onChange={(e) => handleRoleChange(e.target.value as UserRole)}
             className="bg-transparent text-slate-800 text-xs font-semibold focus:outline-none cursor-pointer"
           >
-            <option value="POLICYHOLDER">Policyholder (Rahim)</option>
+            <option value="POLICYHOLDER">Policyholder ({currentUser?.name ? currentUser.name.split(' ')[0] : 'Beneficiary'})</option>
             <option value="PROVIDER">Hospital Provider</option>
             <option value="CLINICAL_VERIFIER">Clinical Verifier</option>
             <option value="FIELD_VERIFIER">Field Verifier</option>
