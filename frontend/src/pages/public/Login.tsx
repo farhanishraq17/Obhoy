@@ -255,7 +255,7 @@ export const Login: React.FC = () => {
                       Enroll with your NID to generate your threshold commitment and get a new Holder Number.
                     </p>
                   </div>
-                  <Link to="/policyholder/enrollment" className="shrink-0">
+                  <Link to="/member-enrollment" className="shrink-0">
                     <Button variant="outline" size="sm" icon={<UserPlus className="w-3.5 h-3.5 text-teal-700" />}>
                       Enroll New Member
                     </Button>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { PageContainer } from '../../components/layout/PageContainer';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -7,421 +7,375 @@ import { Badge } from '../../components/ui/Badge';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
 import { useSimulationStore } from '../../store/simulationStore';
+import { MOCK_USERS } from '../../data/users';
 import { UserProfile } from '../../types/actor';
 import {
   UserCheck,
   ShieldCheck,
+  CreditCard,
   CheckCircle2,
   ArrowRight,
-  KeyRound,
-  LogIn,
-  Sparkles,
-  Fingerprint,
-  User,
-  Phone,
-  MapPin,
-  Building,
-  RotateCcw,
+  Lock,
+  Key,
 } from 'lucide-react';
 import { api } from '../../lib/api';
-
-// Helper to generate deterministic or crypto commitment hash
-function generateCommitmentHash(nid: string): string {
-  let hash = 0;
-  for (let i = 0; i < nid.length; i++) {
-    const char = nid.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  const hexPart = Math.abs(hash).toString(16).padStart(8, '0');
-  const randomSalt = Math.floor(100000000000 + Math.random() * 900000000000).toString(16);
-  return `0x${hexPart}${randomSalt}`.slice(0, 26);
-}
 
 export const Enrollment: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useUIStore();
-  const { registerUser } = useAuthStore();
+  const { setUser } = useAuthStore();
 
-  // Form input states
-  const [name, setName] = useState('');
-  const [nid, setNid] = useState('');
-  const [phone, setPhone] = useState('');
-  const [district, setDistrict] = useState('Dhaka');
-  const [upazila, setUpazila] = useState('Mirpur');
-  const [mfi, setMfi] = useState('BRAC Microfinance');
-  const [mfiGroup, setMfiGroup] = useState('Dhaka Cell 04');
+  const [step, setStep] = useState<'DETAILS' | 'IDENTITY' | 'CONSENT' | 'PAYMENT' | 'COMPLETE'>('DETAILS');
+  const [selectedUserId, setSelectedUserId] = useState(MOCK_USERS[0].id);
+  const [selectedUser, setSelectedUser] = useState(MOCK_USERS[0]);
+  const [nameInput, setNameInput] = useState(MOCK_USERS[0].name);
+  const [nidInput, setNidInput] = useState(MOCK_USERS[0].nid);
+  const [dobInput, setDobInput] = useState('1992-05-14');
+  const [selectedRail, setSelectedRail] = useState('bKash');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [computedCommitment, setComputedCommitment] = useState<string>('');
+  const [custodianQuorum, setCustodianQuorum] = useState<string[]>([]);
+  const [isActivating, setIsActivating] = useState(false);
+  const [issuedPolicyId, setIssuedPolicyId] = useState('POL-1001');
 
-  // Processing & result states
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [enrolledProfile, setEnrolledProfile] = useState<UserProfile | null>(null);
-  const [enrolledPolicyId, setEnrolledPolicyId] = useState<string | null>(null);
-
-  const handleEnroll = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage(null);
-
-    const cleanName = name.trim();
-    const cleanNid = nid.trim();
-
-    if (!cleanName) {
-      setErrorMessage('Please enter the beneficiary full name.');
-      return;
-    }
-    if (!cleanNid || cleanNid.length < 6) {
-      setErrorMessage('Please enter a valid National ID (NID) number (at least 6 digits).');
-      return;
-    }
-
-    setIsProcessing(true);
-
+  const handleIdentityVerify = async () => {
+    setIsVerifying(true);
     try {
-      // 1. Generate unique Holder Number (e.g. HLD-7294)
-      const randomSuffix = Math.floor(1000 + Math.random() * 9000).toString();
-      const holderNumber = `HLD-${randomSuffix}`;
-      const policyId = `POL-${randomSuffix}`;
-
-      // 2. Perform NID Commitment (calls offchain custodian service or deterministic fallback)
-      let commitment = '';
-      try {
-        const res = await api.offchain.commit(cleanNid, 'policy');
-        if (res && res.commitment) {
-          commitment = res.commitment;
-        } else {
-          commitment = generateCommitmentHash(cleanNid);
-        }
-      } catch {
-        commitment = generateCommitmentHash(cleanNid);
+      // Step 1: Call Off-Chain Commitment Service (:7560)
+      const res = await api.offchain.commit(nidInput, 'policy');
+      if (res.ok && res.commitment) {
+        setComputedCommitment(res.commitment);
+        setCustodianQuorum((res as any).quorum || ['idra', 'insurer']);
+        showToast('NID Pseudonym derived via 2-of-3 Custodian Threshold Key', 'success');
+      } else {
+        // Fallback demo commitment
+        setComputedCommitment(selectedUser.nidCommitment);
+        setCustodianQuorum(['idra', 'insurer']);
       }
-
-      // 3. Register subject on ledger
-      try {
-        await api.registerSubject({
-          commitment,
-          keyVersion: 1,
-          aggregatorId: mfi.replace(/\s+/g, '-').toUpperCase(),
-          context: 'policy',
-        });
-      } catch {
-        // network fallback for demo
-      }
-
-      // 4. Issue Policy on Fabric chaincode
-      try {
-        const nowSec = Math.floor(Date.now() / 1000);
-        await api.issuePolicy({
-          policyId,
-          subjectCommitment: commitment,
-          poolId: 'POOL-A',
-          type: 'INDEMNITY',
-          benefitCap: 5000000, // 50,000 BDT in paisa
-          waitingPeriodEnd: nowSec,
-          effectiveFrom: nowSec,
-          expiresAt: nowSec + 31536000,
-        });
-      } catch {
-        // network fallback for demo
-      }
-
-      // 5. Construct user profile connecting Holder Number to NID
-      const newProfile: UserProfile = {
-        id: `USR-${randomSuffix}`,
-        holderNumber,
-        nid: cleanNid,
-        name: cleanName,
-        phone: phone.trim() || '+8801700000000',
-        mfi,
-        group: mfiGroup,
-        district,
-        upazila,
-        nidCommitment: commitment,
-        subjectReference: `SUBJ-••••${commitment.slice(-4).toUpperCase()}`,
-        policyId,
-        coverageStatus: 'ACTIVE',
-      };
-
-      // 6. Save in simulation store policies
-      useSimulationStore.setState((state) => ({
-        policies: [
-          {
-            id: policyId,
-            holderId: newProfile.id,
-            holderName: newProfile.name,
-            holderNID: newProfile.nid,
-            insurerId: 'INS-01',
-            insurerName: 'Green Delta Insurance PLC',
-            product: 'Catastrophic Hospitalization Protection',
-            benefitCap: 50000,
-            scheduleVersion: 'v1.2-2026',
-            status: 'ACTIVE',
-            startDate: new Date().toISOString().slice(0, 10),
-            endDate: new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
-            premiumBDT: 1200,
-            paymentMethod: 'bKash MFS',
-          },
-          ...state.policies,
-        ],
-      }));
-
-      // 7. Register user permanently in auth store and localStorage
-      registerUser(newProfile);
-
-      setEnrolledProfile(newProfile);
-      setEnrolledPolicyId(policyId);
-      showToast(`Holder Number ${holderNumber} issued for ${cleanName}!`, 'success');
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Enrollment failed. Please try again.');
+      setStep('CONSENT');
+    } catch {
+      setComputedCommitment(selectedUser.nidCommitment);
+      setStep('CONSENT');
     } finally {
-      setIsProcessing(false);
+      setIsVerifying(false);
     }
   };
 
-  const handleEnrollAnother = () => {
-    setEnrolledProfile(null);
-    setEnrolledPolicyId(null);
-    setName('');
-    setNid('');
-    setPhone('');
-    setErrorMessage(null);
+  const handlePayment = async () => {
+    setIsActivating(true);
+    const policyId = `POL-${Date.now().toString().slice(-4)}`;
+    setIssuedPolicyId(policyId);
+    const finalCommitment = computedCommitment || selectedUser.nidCommitment;
+    const finalName = nameInput.trim() || selectedUser.name;
+    const finalNid = nidInput.trim() || selectedUser.nid;
+
+    try {
+      // Step 2: Register commitment on ledger
+      await api.registerSubject({
+        commitment: finalCommitment,
+        keyVersion: 1,
+        aggregatorId: 'MFI-BRAC',
+        context: 'policy',
+      });
+
+      // Step 3: Issue Policy on Fabric chaincode
+      const nowSec = Math.floor(Date.now() / 1000);
+      await api.issuePolicy({
+        policyId,
+        subjectCommitment: finalCommitment,
+        poolId: 'POOL-A',
+        type: 'INDEMNITY',
+        benefitCap: 5000000, // 50,000 BDT in paisa
+        waitingPeriodEnd: nowSec,
+        effectiveFrom: nowSec,
+        expiresAt: nowSec + 31536000,
+      });
+    } catch {
+      // Ignore network errors for local demo
+    }
+
+    // Update active logged-in user profile in authStore
+    const newProfile: UserProfile = {
+      id: `USR-${Date.now().toString().slice(-4)}`,
+      nid: finalNid,
+      name: finalName,
+      phone: selectedUser.phone || '+8801700000000',
+      mfi: selectedUser.mfi,
+      group: selectedUser.group,
+      district: selectedUser.district || 'Dhaka',
+      upazila: selectedUser.upazila || 'Mirpur',
+      nidCommitment: finalCommitment,
+      subjectReference: `SUBJ-••••${finalCommitment.slice(-4).toUpperCase()}`,
+      policyId,
+      holderNumber: selectedUser.holderNumber || `HLD-${Date.now().toString().slice(-4)}`,
+      coverageStatus: 'ACTIVE',
+    };
+    setUser(newProfile);
+
+    // Also add policy to simulation store so the policy dashboard renders it
+    useSimulationStore.setState((state) => ({
+      policies: [
+        {
+          id: policyId,
+          holderId: newProfile.id,
+          holderName: newProfile.name,
+          holderNID: newProfile.nid,
+          insurerId: 'INS-01',
+          insurerName: 'Green Delta Insurance PLC',
+          product: 'Catastrophic Hospitalization Protection',
+          benefitCap: 50000,
+          scheduleVersion: 'v1.2-2026',
+          status: 'ACTIVE',
+          startDate: new Date().toISOString().slice(0, 10),
+          endDate: new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10),
+          premiumBDT: 1200,
+          paymentMethod: selectedRail,
+        },
+        ...state.policies,
+      ],
+    }));
+
+    setIsActivating(false);
+    setStep('COMPLETE');
+    showToast(`Policy ${policyId} Activated On-Chain for ${finalName}!`, 'success');
+  };
+
+  const handleFinish = () => {
+    navigate('/policyholder');
   };
 
   return (
-    <PageContainer isPublic>
-      <div className="max-w-xl mx-auto space-y-6 py-8">
-        {/* ========================================================================= */}
-        {/* STATE 1: ENROLLMENT FORM (ENTER NID & DETAILS)                            */}
-        {/* ========================================================================= */}
-        {!enrolledProfile ? (
-          <div className="space-y-6">
-            <div className="text-center space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 border border-teal-200 flex items-center justify-center mx-auto shadow-xs">
-                <Fingerprint className="w-6 h-6" />
-              </div>
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-                New Member NID Enrollment
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
-                Provide your National ID (NID) to derive your cryptographic commitment and receive your official Holder Number.
-              </p>
-            </div>
+    <PageContainer>
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="text-center space-y-2">
+          <Badge variant="success">Enrolment Wizard</Badge>
+          <h1 className="text-2xl font-extrabold text-slate-900">Group Health Insurance Enrolment</h1>
+          <p className="text-xs text-slate-500">
+            Microfinance Group Enrolment channel for <span className="text-teal-700 font-bold">{nameInput || selectedUser.name}</span> ({selectedUser.group})
+          </p>
+        </div>
 
-            {errorMessage && (
-              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
-                {errorMessage}
-              </div>
-            )}
+        {/* Multi-Step Wizard */}
+        <Card className="p-6 space-y-6">
+          {step === 'DETAILS' && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <UserCheck className="w-4 h-4 text-teal-600" />
+                <span>1. Select Applicant & MFI Group</span>
+              </h3>
 
-            <Card className="p-6 sm:p-8 space-y-5 border-slate-200 shadow-md">
-              <form onSubmit={handleEnroll} className="space-y-4">
+              <div className="space-y-3 text-xs">
                 <div>
-                  <label className="block text-xs font-mono font-bold text-slate-700 mb-1 uppercase">
-                    Beneficiary Full Name *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Tanvir Hasan"
-                      className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-teal-600 rounded-xl p-3 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
-                    />
-                    <User className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
-                  </div>
+                  <label className="block text-slate-500 font-mono mb-1">Preset Beneficiary Profile:</label>
+                  <select
+                    value={selectedUserId}
+                    onChange={(e) => {
+                      setSelectedUserId(e.target.value);
+                      if (e.target.value === 'CUSTOM') {
+                        setNameInput('');
+                        setNidInput('');
+                      } else {
+                        const matched = MOCK_USERS.find((u) => u.id === e.target.value) || MOCK_USERS[0];
+                        setSelectedUser(matched);
+                        setNameInput(matched.name);
+                        setNidInput(matched.nid);
+                      }
+                    }}
+                    className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 font-bold"
+                  >
+                    {MOCK_USERS.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.group})
+                      </option>
+                    ))}
+                    <option value="CUSTOM">+ Enter Custom Applicant Name & NID</option>
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono font-bold text-slate-700 mb-1 uppercase">
-                    National ID (NID) Number *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      required
-                      value={nid}
-                      onChange={(e) => setNid(e.target.value)}
-                      placeholder="e.g. 19952691458000312 (10 or 17 digits)"
-                      className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-teal-600 rounded-xl p-3 text-sm font-mono font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all"
-                    />
-                    <Fingerprint className="w-4 h-4 text-teal-600 absolute right-3.5 top-3.5 pointer-events-none" />
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-1 font-mono">
-                    Your NID will be securely verified and bound to your new Holder Number.
-                  </p>
+                  <label className="block text-slate-500 font-mono mb-1">Applicant Full Name:</label>
+                  <input
+                    type="text"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder="Enter full name"
+                    className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-slate-900 font-bold"
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-mono font-bold text-slate-700 mb-1 uppercase">
-                      Mobile Phone
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+8801700000000"
-                        className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-teal-600 rounded-xl p-2.5 text-xs font-mono text-slate-900 focus:outline-none"
-                      />
-                      <Phone className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-mono font-bold text-slate-700 mb-1 uppercase">
-                      District / Upazila
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={`${district} / ${upazila}`}
-                        onChange={(e) => {
-                          const parts = e.target.value.split('/');
-                          setDistrict(parts[0]?.trim() || 'Dhaka');
-                          setUpazila(parts[1]?.trim() || 'Mirpur');
-                        }}
-                        className="w-full bg-slate-50 border border-slate-300 focus:bg-white focus:border-teal-600 rounded-xl p-2.5 text-xs font-mono text-slate-900 focus:outline-none"
-                      />
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-slate-500 font-mono mb-1">Microfinance Institution (MFI):</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={selectedUser.mfi}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-800 font-semibold"
+                  />
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-teal-50/70 border border-teal-200 text-xs space-y-1">
-                  <span className="font-bold text-teal-900 block flex items-center space-x-1">
-                    <ShieldCheck className="w-4 h-4 text-teal-700" />
-                    <span>Secure On-Chain Account Registration</span>
-                  </span>
-                  <p className="text-teal-800 leading-relaxed text-[11px]">
-                    Your National ID is verified and bound to a unique <strong>Holder Number</strong> for convenient, secure access to all your policies and hospital admissions.
-                  </p>
+                <div>
+                  <label className="block text-slate-500 font-mono mb-1">Product Name:</label>
+                  <input
+                    type="text"
+                    disabled
+                    value="Catastrophic Hospitalization Protection (BDT 50,000 Cap)"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-teal-700 font-bold"
+                  />
                 </div>
-
-                <Button
-                  variant="primary"
-                  type="submit"
-                  disabled={isProcessing}
-                  className="w-full py-3 text-sm font-bold"
-                  icon={isProcessing ? undefined : <KeyRound className="w-4 h-4" />}
-                >
-                  {isProcessing ? 'Registering Member & Generating Holder Number...' : 'Enroll & Generate Holder Number'}
-                </Button>
-              </form>
-            </Card>
-
-            <div className="text-center">
-              <Link to="/login" className="text-xs text-slate-500 hover:text-teal-700 font-semibold inline-flex items-center space-x-1">
-                <span>Already have a Holder Number? Sign In</span>
-                <span>→</span>
-              </Link>
-            </div>
-          </div>
-        ) : (
-          /* ========================================================================= */
-          /* STATE 2: ENROLLED RESULT SCREEN (RETURNED HOLDER NUMBER CARD)              */
-          /* ========================================================================= */
-          <div className="space-y-6 animate-fade-in">
-            <div className="text-center space-y-2">
-              <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-sm">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-              <h1 className="text-2xl font-extrabold text-slate-900">
-                Enrollment Successful!
-              </h1>
-              <p className="text-xs text-slate-600 max-w-md mx-auto">
-                Your account has been registered on the blockchain and connected to your new Holder Number.
-              </p>
-            </div>
-
-            {/* Credential Certificate Card */}
-            <Card className="p-6 sm:p-8 space-y-6 border-2 border-teal-500/50 bg-gradient-to-b from-teal-50/50 via-white to-white shadow-lg">
-              <div className="flex items-center justify-between border-b border-teal-200 pb-3">
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-teal-600" />
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-teal-800">
-                    Official Member Credential
-                  </span>
-                </div>
-                <Badge variant="success">Active On-Chain ✓</Badge>
               </div>
 
-              {/* Big Highlighted Holder Number */}
-              <div className="text-center py-3 px-4 bg-teal-100/40 border border-teal-300 rounded-2xl space-y-1">
-                <span className="text-[11px] font-mono text-slate-500 uppercase font-bold tracking-wider block">
-                  Your Assigned Member Holder Number
+              <Button variant="primary" className="w-full" onClick={() => setStep('IDENTITY')}>
+                Continue to Identity Verification
+              </Button>
+            </div>
+          )}
+
+          {step === 'IDENTITY' && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-teal-600" />
+                <span>2. National ID (NID) Identity Resolution</span>
+              </h3>
+
+              <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-lg text-xs text-blue-900 flex items-start space-x-2">
+                <Lock className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Zero On-Chain PHI</strong>: Your raw NID is never sent to the blockchain. An off-chain 2-of-3 Shamir threshold service computes a Keyed-PRF Commitment <code className="font-mono text-blue-800">HMAC_Kv(NID || context)</code>.
                 </span>
-                <div className="text-4xl sm:text-5xl font-mono font-black text-teal-900 tracking-wider">
-                  {enrolledProfile.holderNumber}
-                </div>
-                <p className="text-xs text-teal-800 font-semibold pt-1">
-                  Save this number! You will enter this <strong>Holder Number</strong> to sign in.
-                </p>
               </div>
 
-              {/* Connection to NID details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono">
+              <div className="space-y-3 text-xs">
                 <div>
-                  <span className="text-slate-400 text-[10px] uppercase block font-bold">Member Name</span>
-                  <strong className="text-slate-900 text-sm">{enrolledProfile.name}</strong>
+                  <label className="block text-slate-500 font-mono mb-1">National ID Number:</label>
+                  <input
+                    type="text"
+                    value={nidInput}
+                    onChange={(e) => setNidInput(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 font-mono"
+                    placeholder="Enter 10-17 digit NID"
+                  />
                 </div>
                 <div>
-                  <span className="text-slate-400 text-[10px] uppercase block font-bold">Connected National ID (NID)</span>
-                  <span className="text-slate-800 font-bold">
-                    {enrolledProfile.nid.slice(0, 4)}••••{enrolledProfile.nid.slice(-4)}
+                  <label className="block text-slate-500 font-mono mb-1">Date of Birth:</label>
+                  <input
+                    type="date"
+                    value={dobInput}
+                    onChange={(e) => setDobInput(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-900 font-mono"
+                  />
+                </div>
+              </div>
+
+              <Button variant="primary" className="w-full" onClick={handleIdentityVerify} disabled={isVerifying}>
+                {isVerifying ? 'Querying Custodians & Computing PRF...' : 'Verify Identity & Compute Commitment'}
+              </Button>
+            </div>
+          )}
+
+          {step === 'CONSENT' && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-slate-900">3. Policy Coverage Terms & Schedule</h3>
+
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span className="text-slate-500">Applicant:</span>
+                  <span className="font-bold text-slate-900">{nameInput || selectedUser.name}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span className="text-slate-500">Insurer:</span>
+                  <span className="font-bold text-slate-900">Green Delta Insurance PLC (Insurer A)</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span className="text-slate-500">Annual Benefit Ceiling:</span>
+                  <span className="font-bold text-emerald-700">BDT 50,000</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span className="text-slate-500">Benefit Schedule Version:</span>
+                  <span className="font-mono text-teal-700 font-semibold">v1.2-2026</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-200">
+                  <span className="text-slate-500">Annual Premium:</span>
+                  <span className="font-bold text-slate-900">BDT 1,200 / year</span>
+                </div>
+                <div className="py-1">
+                  <span className="text-slate-500 block mb-1 flex items-center space-x-1">
+                    <Key className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Derived Subject Commitment (On-Chain Pseudonym):</span>
                   </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 text-[10px] uppercase block font-bold">Holder Number</span>
-                  <span className="text-teal-800 font-bold block">
-                    {enrolledProfile.holderNumber}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 text-[10px] uppercase block font-bold">Policy Protection</span>
-                  <span className="text-emerald-700 font-bold">{enrolledPolicyId} (BDT 50,000 Cap)</span>
+                  <div className="font-mono text-[10px] bg-slate-900 text-emerald-400 p-2 rounded break-all select-all">
+                    {computedCommitment || selectedUser.nidCommitment}
+                  </div>
+                  {custodianQuorum.length > 0 && (
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      Reconstructed under 2-of-3 threshold quorum: {custodianQuorum.join(' + ')}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Explanation */}
-              <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-xs text-emerald-900 font-medium">
-                Whenever you enter <strong>{enrolledProfile.holderNumber}</strong> on the login screen, you will be taken directly to your account where all your policy and event details are shown.
-              </div>
+              <Button variant="primary" className="w-full" onClick={() => setStep('PAYMENT')}>
+                I Agree & Proceed to Premium Payment
+              </Button>
+            </div>
+          )}
 
-              {/* Navigation Action Buttons */}
-              <div className="space-y-2 pt-2">
-                <Button
-                  variant="primary"
-                  className="w-full py-3 font-bold"
-                  onClick={() => navigate('/policyholder')}
-                  icon={<ArrowRight className="w-4 h-4" />}
-                >
-                  Go to My Account (Policyholder Portal)
-                </Button>
+          {step === 'PAYMENT' && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <CreditCard className="w-4 h-4 text-teal-600" />
+                <span>4. Mobile Financial Service (MFS) Premium Payment</span>
+              </h3>
 
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 border-slate-300 hover:bg-slate-50"
-                    onClick={() => navigate('/login', { state: { prefillHolder: enrolledProfile.holderNumber } })}
-                    icon={<LogIn className="w-3.5 h-3.5" />}
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                {['bKash', 'Nagad', 'Rocket', 'MFI Account'].map((rail) => (
+                  <button
+                    key={rail}
+                    type="button"
+                    onClick={() => setSelectedRail(rail)}
+                    className={`p-3 rounded-xl border text-center font-bold transition-all cursor-pointer ${
+                      selectedRail === rail
+                        ? 'bg-teal-50 border-teal-600 text-teal-800 shadow-xs'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
                   >
-                    Test Sign In with {enrolledProfile.holderNumber}
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    className="flex-1 text-slate-600 hover:bg-slate-100"
-                    onClick={handleEnrollAnother}
-                    icon={<RotateCcw className="w-3.5 h-3.5" />}
-                  >
-                    Enroll Another Member
-                  </Button>
-                </div>
+                    {rail}
+                  </button>
+                ))}
               </div>
-            </Card>
-          </div>
-        )}
+
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs flex justify-between items-center font-mono">
+                <span className="text-slate-500">Amount Due:</span>
+                <span className="text-emerald-700 font-bold">BDT 1,200</span>
+              </div>
+
+              <Button variant="primary" className="w-full" onClick={handlePayment} disabled={isActivating}>
+                {isActivating ? 'Issuing Policy On-Chain...' : 'Pay Premium & Activate Policy'}
+              </Button>
+            </div>
+          )}
+
+          {step === 'COMPLETE' && (
+            <div className="text-center space-y-4 py-4">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-200">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900">Policy Activated Successfully!</h3>
+              <p className="text-xs text-slate-600">
+                Policy <code className="text-teal-700 font-mono font-bold">{issuedPolicyId}</code> is now ACTIVE on the Hyperledger Fabric ledger for <strong className="text-slate-900">{nameInput || selectedUser.name}</strong>.
+              </p>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-left text-xs font-mono space-y-1">
+                <div className="text-slate-500">Beneficiary: <span className="text-slate-900 font-bold">{nameInput || selectedUser.name}</span></div>
+                <div className="text-slate-500">Commitment: <span className="text-slate-800 truncate">{computedCommitment.slice(0, 18)}...</span></div>
+                <div className="text-slate-500">Pool: <span className="text-slate-800">POOL-A</span></div>
+                <div className="text-slate-500">Coverage: <span className="text-emerald-700 font-bold">BDT 50,000 / year</span></div>
+              </div>
+
+              <Button variant="primary" className="w-full" onClick={handleFinish} icon={<ArrowRight className="w-4 h-4" />}>
+                Go to Policy Dashboard
+              </Button>
+            </div>
+          )}
+        </Card>
       </div>
     </PageContainer>
   );

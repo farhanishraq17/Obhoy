@@ -3,8 +3,9 @@ import { InsurableEvent } from '../types/event';
 import { Policy } from '../types/policy';
 import { Entitlement } from '../types/entitlement';
 import { Settlement } from '../types/settlement';
-import { Appeal } from '../types/transparency';
+import { Appeal, AuditRecord } from '../types/transparency';
 import { UserProfile, ProviderEntity } from '../types/actor';
+import { MOCK_PROVIDERS } from '../data/providers';
 import {
   openEventTransition,
   continueEventTransition,
@@ -19,12 +20,90 @@ import { formatDateTime, getCurrentAdmissionWindow } from '../lib/dates';
 import { ScenarioId } from '../types/simulation';
 import { api, FabricMSP } from '../lib/api';
 
+export const INITIAL_AUDIT_LOGS: AuditRecord[] = [
+  {
+    id: 'AUD-88295',
+    type: 'ANCHOR_PUBLISHED',
+    entityId: 'ROOT-2026-09-A',
+    actorRole: 'CONSORTIUM',
+    actorName: 'Consortium Anchor Service',
+    timestamp: '2026-09-03 18:21:04',
+    description: 'Monthly transparency root anchored to external chain with OpenTimestamps cryptographic attestation.',
+    evidenceHash: '0x7a8c91ef230b44199cba7712e091af',
+    channel: 'audit-channel',
+  },
+  {
+    id: 'AUD-88294',
+    type: 'APPEAL_RESOLVED',
+    entityId: 'APL-4992',
+    actorRole: 'TRIBUNAL',
+    actorName: 'Independent Arbitration Tribunal',
+    timestamp: '2026-09-03 18:18:32',
+    description: 'Tribunal voted 3-0 to OVERTURN insurer denial for ENT-9592. Entitlement reinstated on ledger.',
+    previousState: 'UNDER_REVIEW',
+    newState: 'OVERTURNED',
+    evidenceHash: '0x91ab73fe8801ce4411993410a82b',
+    channel: 'audit-channel',
+  },
+  {
+    id: 'AUD-88293',
+    type: 'SLA_BREACH',
+    entityId: 'INS-002',
+    actorRole: 'CONSORTIUM',
+    actorName: 'SLA Supervisory Monitor',
+    timestamp: '2026-09-03 18:12:09',
+    description: 'Settlement delay exceeded 3-day SLA (observed 5.4 days median for Pragati Insurance).',
+    evidenceHash: '0x33b1e90a8844f21098a72bcda5',
+    channel: 'audit-channel',
+  },
+  {
+    id: 'AUD-88292',
+    type: 'SETTLEMENT_CONFIRMED',
+    entityId: 'SET-9410',
+    actorRole: 'GATEWAY',
+    actorName: 'bKash MFS Disbursement Adapter',
+    timestamp: '2026-09-03 17:45:11',
+    description: 'Settlement payout BDT 45,000 confirmed to recipient 01711223344. Idempotency key verified.',
+    previousState: 'PROCESSING',
+    newState: 'SETTLED',
+    evidenceHash: '0x8892bcda7710fa99002341bcef',
+    channel: 'audit-channel',
+  },
+  {
+    id: 'AUD-88291',
+    type: 'QUORUM_REACHED',
+    entityId: 'EVT-8187',
+    actorRole: 'CONSORTIUM',
+    actorName: 'Fabric Consensus Peer',
+    timestamp: '2026-09-03 16:30:22',
+    description: 'Multi-class attestation quorum satisfied (2-of-3: ProviderMSP + ClinicalMSP). Event transitioned to CLOSED_ELIGIBLE.',
+    previousState: 'OPEN',
+    newState: 'CLOSED_ELIGIBLE',
+    evidenceHash: '0x6d0e01e663cdbe21f8e6af017e',
+    channel: 'audit-channel',
+  },
+  {
+    id: 'AUD-88290',
+    type: 'EVENT_CREATED',
+    entityId: 'EVT-8187',
+    actorRole: 'PROVIDER',
+    actorName: 'ABC Upazila Health Complex',
+    timestamp: '2026-09-03 16:15:00',
+    description: 'Insurable admission event asserted under admission window 2026-09-01. Uniqueness check passed.',
+    evidenceHash: '0x448a91bc7720e1189acbe012',
+    channel: 'audit-channel',
+  },
+];
+
 interface SimulationState {
   events: InsurableEvent[];
   policies: Policy[];
   entitlements: Entitlement[];
   settlements: Settlement[];
   appeals: Appeal[];
+  providers: ProviderEntity[];
+  auditLogs: AuditRecord[];
+  anchorVerified: boolean;
   backendConnected: boolean;
 
   // Engine Actions
@@ -46,15 +125,23 @@ interface SimulationState {
     evidenceRef?: string
   ) => Promise<{ success: boolean; quorumSatisfied: boolean; message: string }>;
   authorizeEntitlement: (entitlementId: string, amount?: number) => Promise<{ success: boolean; settlementId?: string; message: string }>;
+  denyEntitlement: (entitlementId: string, reason: string, explanation?: string) => Promise<{ success: boolean; message: string }>;
   processSettlement: (settlementId: string, simulateTimeout?: boolean) => Promise<{ success: boolean; reference?: string; message: string }>;
+  reconcileSettlement: (settlementId: string) => Promise<{ success: boolean; reference?: string; message: string }>;
   submitAppeal: (entitlementId: string, reason: string) => Promise<{ success: boolean; message: string }>;
-  resolveAppeal: (appealId: string, decision: 'UPHELD' | 'OVERTURNED') => Promise<{ success: boolean; message: string }>;
+  resolveAppeal: (appealId: string, decision: 'UPHELD' | 'OVERTURNED', reasoning?: string) => Promise<{ success: boolean; message: string }>;
+  suspendProvider: (providerId: string, reason: string) => Promise<{ success: boolean; message: string }>;
+  reinstateProvider: (providerId: string) => Promise<{ success: boolean; message: string }>;
+  verifyAnchor: () => Promise<{ success: boolean; message: string }>;
 }
 
 const initialState = loadStoredState(prepareScenarioState('HAPPY_PATH'));
 
 export const useSimulationStore = create<SimulationState>((set, get) => ({
   ...initialState,
+  providers: (initialState as any).providers || MOCK_PROVIDERS,
+  auditLogs: (initialState as any).auditLogs || INITIAL_AUDIT_LOGS,
+  anchorVerified: true,
   backendConnected: false,
 
   syncWithBackend: async () => {
@@ -370,7 +457,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     return { success: true, message: `Appeal ${newAppeal.id} submitted for independent arbitration.` };
   },
 
-  resolveAppeal: async (appealId, decision) => {
+  resolveAppeal: async (appealId, decision, reasoning) => {
     const appeal = get().appeals.find((a) => a.id === appealId);
     if (!appeal) return { success: false, message: 'Appeal not found' };
 
@@ -405,14 +492,222 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       });
     }
 
+    const auditEntry: AuditRecord = {
+      id: generateId('AUD'),
+      type: 'APPEAL_RESOLVED',
+      entityId: appealId,
+      actorRole: 'TRIBUNAL',
+      actorName: 'Independent Arbitration Tribunal',
+      timestamp: nowStr,
+      description: `Tribunal decided ${decision} for ${appeal.entitlementId}. ${reasoning || ''}`,
+      previousState: appeal.status,
+      newState: newStatus,
+      evidenceHash: `0x${Date.now().toString(16)}abcdef`,
+      channel: 'audit-channel',
+    };
+
     const nextState = {
       ...get(),
       appeals: updatedAppeals,
       entitlements: updatedEntitlements,
+      auditLogs: [auditEntry, ...get().auditLogs],
     };
 
     saveStoredState(nextState);
     set(nextState);
     return { success: true, message: `Appeal ${appealId} resolved: ${decision}.` };
+  },
+
+  denyEntitlement: async (entitlementId, reason, explanation) => {
+    const ent = get().entitlements.find((e) => e.id === entitlementId);
+    if (!ent) return { success: false, message: 'Entitlement not found.' };
+
+    const nowStr = formatDateTime(new Date().toISOString());
+    const updatedEntitlements = get().entitlements.map((e) => {
+      if (e.id === entitlementId) {
+        return {
+          ...e,
+          status: 'DENIED' as const,
+          denialReason: reason,
+          decisionDate: nowStr,
+        };
+      }
+      return e;
+    });
+
+    const auditEntry: AuditRecord = {
+      id: generateId('AUD'),
+      type: 'ENTITLEMENT_DENIED',
+      entityId: entitlementId,
+      actorRole: 'INSURER',
+      actorName: ent.insurerName || 'Insurer',
+      timestamp: nowStr,
+      description: `Entitlement denied: ${reason}. Explanation: ${explanation || 'None provided'}.`,
+      previousState: ent.status,
+      newState: 'DENIED',
+      evidenceHash: `0xdenial${Date.now().toString(16)}`,
+      channel: 'audit-channel',
+    };
+
+    const nextState = {
+      ...get(),
+      entitlements: updatedEntitlements,
+      auditLogs: [auditEntry, ...get().auditLogs],
+    };
+
+    saveStoredState(nextState);
+    set(nextState);
+    return { success: true, message: `Entitlement ${entitlementId} marked DENIED.` };
+  },
+
+  reconcileSettlement: async (settlementId) => {
+    const stm = get().settlements.find((s) => s.id === settlementId);
+    if (!stm) return { success: false, message: 'Settlement not found.' };
+
+    const nowStr = formatDateTime(new Date().toISOString());
+    const txnRef = `TXN-BKX-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    const updatedSettlements = get().settlements.map((s) => {
+      if (s.id === settlementId) {
+        return {
+          ...s,
+          status: 'SETTLED' as const,
+          reference: txnRef,
+          settledAt: nowStr,
+        };
+      }
+      return s;
+    });
+
+    const updatedEntitlements = get().entitlements.map((e) => {
+      if (e.id === stm.entitlementId) {
+        return { ...e, status: 'SETTLED' as const };
+      }
+      return e;
+    });
+
+    const auditEntry: AuditRecord = {
+      id: generateId('AUD'),
+      type: 'SETTLEMENT_RECONCILED',
+      entityId: settlementId,
+      actorRole: 'GATEWAY',
+      actorName: 'bKash MFS Gateway Reconciler',
+      timestamp: nowStr,
+      description: `Settlement reconciled against MFS log. Payment confirmed with Ref ${txnRef}. No duplicate disbursement.`,
+      previousState: stm.status,
+      newState: 'SETTLED',
+      evidenceHash: `0xrecon${Date.now().toString(16)}`,
+      channel: 'audit-channel',
+    };
+
+    const nextState = {
+      ...get(),
+      settlements: updatedSettlements,
+      entitlements: updatedEntitlements,
+      auditLogs: [auditEntry, ...get().auditLogs],
+    };
+
+    saveStoredState(nextState);
+    set(nextState);
+    return { success: true, reference: txnRef, message: 'Settlement reconciled and confirmed on-chain ✓' };
+  },
+
+  suspendProvider: async (providerId, reason) => {
+    const prov = get().providers.find((p) => p.id === providerId);
+    if (!prov) return { success: false, message: 'Provider not found.' };
+
+    const nowStr = formatDateTime(new Date().toISOString());
+    const updatedProviders = get().providers.map((p) => {
+      if (p.id === providerId) {
+        return { ...p, accreditationStatus: 'SUSPENDED' as const };
+      }
+      return p;
+    });
+
+    const auditEntry: AuditRecord = {
+      id: generateId('AUD'),
+      type: 'PROVIDER_SUSPENDED',
+      entityId: providerId,
+      actorRole: 'REGULATOR',
+      actorName: 'IDRA Supervisory Authority',
+      timestamp: nowStr,
+      description: `Accreditation suspended for ${prov.name}. Reason: ${reason}. Historical signatures preserved.`,
+      previousState: prov.accreditationStatus,
+      newState: 'SUSPENDED',
+      evidenceHash: `0xsuspend${Date.now().toString(16)}`,
+      channel: 'audit-channel',
+    };
+
+    const nextState = {
+      ...get(),
+      providers: updatedProviders,
+      auditLogs: [auditEntry, ...get().auditLogs],
+    };
+
+    saveStoredState(nextState);
+    set(nextState);
+    return { success: true, message: `Provider ${prov.name} suspended. New endorsements blocked.` };
+  },
+
+  reinstateProvider: async (providerId) => {
+    const prov = get().providers.find((p) => p.id === providerId);
+    if (!prov) return { success: false, message: 'Provider not found.' };
+
+    const nowStr = formatDateTime(new Date().toISOString());
+    const updatedProviders = get().providers.map((p) => {
+      if (p.id === providerId) {
+        return { ...p, accreditationStatus: 'ACCREDITED' as const };
+      }
+      return p;
+    });
+
+    const auditEntry: AuditRecord = {
+      id: generateId('AUD'),
+      type: 'PROVIDER_REINSTATED',
+      entityId: providerId,
+      actorRole: 'REGULATOR',
+      actorName: 'IDRA Supervisory Authority',
+      timestamp: nowStr,
+      description: `Accreditation reinstated for ${prov.name}. Endorsement privileges restored.`,
+      previousState: prov.accreditationStatus,
+      newState: 'ACCREDITED',
+      evidenceHash: `0xreinstate${Date.now().toString(16)}`,
+      channel: 'audit-channel',
+    };
+
+    const nextState = {
+      ...get(),
+      providers: updatedProviders,
+      auditLogs: [auditEntry, ...get().auditLogs],
+    };
+
+    saveStoredState(nextState);
+    set(nextState);
+    return { success: true, message: `Provider ${prov.name} reinstated successfully.` };
+  },
+
+  verifyAnchor: async () => {
+    const nowStr = formatDateTime(new Date().toISOString());
+    const auditEntry: AuditRecord = {
+      id: generateId('AUD'),
+      type: 'ANCHOR_PUBLISHED',
+      entityId: 'ROOT-2026-09-PUBLIC',
+      actorRole: 'CONSORTIUM',
+      actorName: 'IDRA External Anchor Verifier',
+      timestamp: nowStr,
+      description: 'Audit channel Merkle root (0x7a8c91ef230b44199cba7712e091af) matched against external Polygon proof.',
+      evidenceHash: '0x7a8c91ef230b44199cba7712e091af',
+      channel: 'audit-channel',
+    };
+
+    const nextState = {
+      ...get(),
+      anchorVerified: true,
+      auditLogs: [auditEntry, ...get().auditLogs],
+    };
+
+    saveStoredState(nextState);
+    set(nextState);
+    return { success: true, message: 'Consortium Merkle root verified against external anchor proof ✓' };
   },
 }));
