@@ -1,0 +1,45 @@
+# Line endings, decided here rather than by whoever happens to clone.
+#
+# Without this file the result depends on each contributor's core.autocrlf.
+# A teammate whose setting differs can commit CRLF into a shell script, and the
+# next person to clone on Linux or WSL gets:
+#
+#     ./obhoy.sh: /usr/bin/env bash^M: bad interpreter: No such file or directory
+#
+# which is a confusing failure for a one-character cause. The rules below make
+# it deterministic for everyone.
+
+# Normalise everything to LF in the repository; let git use the platform
+# default in the working tree unless a rule below says otherwise.
+* text=auto
+
+# Shell and Python must be LF in the working tree too. bash reads the shebang
+# byte for byte and a trailing CR is part of the interpreter name.
+*.sh   text eol=lf
+*.py   text eol=lf
+
+# PowerShell is happier with CRLF on Windows, which is the only place it runs.
+*.ps1  text eol=crlf
+
+# Formats where a stray CR is a correctness problem rather than a nuisance.
+*.go   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.json text eol=lf
+*.sol  text eol=lf
+
+# Never touched.
+*.png  binary
+*.jpg  binary
+*.pdf  binary
+*.tar.gz binary
+*.block  binary
+
+# Generated. Marking it keeps diffs of a 300 KB lockfile out of review, without
+# excluding it from the repository -- a lockfile that is not committed is a
+# build that is not reproducible.
+anchor/package-lock.json linguist-generated=true -diff
+
+# So GitHub's language statistics describe the project rather than its
+# dependencies' default configuration.
+network/config/core.yaml linguist-vendored=true

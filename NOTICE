@@ -1,0 +1,31 @@
+Obhoy — claims-integrity network prototype
+Copyright 2026 the Obhoy authors
+
+This product includes software developed at
+The Linux Foundation (https://www.hyperledger.org/).
+
+------------------------------------------------------------------------------
+Third-party material redistributed in this repository
+------------------------------------------------------------------------------
+
+network/config/core.yaml
+
+  Copyright IBM Corp. All Rights Reserved.
+  SPDX-License-Identifier: Apache-2.0
+
+  Redistributed verbatim from the Hyperledger Fabric v2.5.10 binary
+  distribution. It is the peer's default configuration and is present so that
+  `peer` commands can be run from the host without a separate Fabric
+  installation. Unmodified; its original copyright and SPDX headers are intact.
+
+------------------------------------------------------------------------------
+Dependencies not vendored here
+------------------------------------------------------------------------------
+
+The chaincode builds against hyperledger/fabric-contract-api-go and
+hyperledger/fabric-chaincode-go (Apache-2.0). The anchoring contract is built
+and tested with Hardhat (MIT). Neither is redistributed in this repository;
+both are fetched by the respective package manager. See chaincode/obhoycc/go.sum
+and anchor/package-lock.json for the exact versions.
+
+No other third-party source is included.
