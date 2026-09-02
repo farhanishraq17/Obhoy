@@ -13,7 +13,19 @@ export const PolicyDashboard: React.FC = () => {
   const { currentUser } = useAuthStore();
   const { policies, events } = useSimulationStore();
 
-  const userPolicies = policies.filter((p) => p.holderId === currentUser.id);
+  const userPolicies = policies.filter(
+    (p) =>
+      p.holderId === currentUser.id ||
+      p.holderNID === currentUser.nid ||
+      p.id === currentUser.policyId
+  );
+
+  const userEvents = events.filter(
+    (e) =>
+      e.holderId === currentUser.id ||
+      e.holderNIDCommitment === currentUser.nidCommitment ||
+      (currentUser.name && e.holderName?.toLowerCase() === currentUser.name.toLowerCase())
+  );
 
   return (
     <PageContainer>
@@ -22,12 +34,12 @@ export const PolicyDashboard: React.FC = () => {
           <div>
             <h1 className="text-xl font-bold text-slate-900">Welcome, {currentUser.name}</h1>
             <p className="text-xs text-slate-500 font-mono mt-0.5">
-              NID Commitment: {currentUser.nidCommitment} | MFI: {currentUser.mfi} ({currentUser.group})
+              Holder Number: {currentUser.holderNumber || 'HLD-1001'} | MFI: {currentUser.mfi} ({currentUser.group})
             </p>
           </div>
           <Link to="/policyholder/events">
             <Button variant="outline" size="sm" icon={<Activity className="w-4 h-4" />}>
-              View Active Events ({events.length})
+              View Active Events ({userEvents.length})
             </Button>
           </Link>
         </div>
@@ -71,17 +83,17 @@ export const PolicyDashboard: React.FC = () => {
           <h2 className="text-xs font-bold text-slate-500 uppercase font-mono tracking-wider">
             Insurable Events & Claims
           </h2>
-          {events.length === 0 ? (
+          {userEvents.length === 0 ? (
             <Card className="text-center py-8 text-slate-500 text-xs space-y-2">
               <Clock className="w-6 h-6 mx-auto text-slate-400" />
               <p>No active hospital admission events recorded for your policy yet.</p>
               <p className="text-[11px] text-teal-700 font-mono">
-                Log in as Healthcare Provider to assert a hospital admission event.
+                When an accredited provider asserts a hospital admission, it will appear here.
               </p>
             </Card>
           ) : (
             <div className="space-y-3">
-              {events.map((evt) => (
+              {userEvents.map((evt) => (
                 <Card key={evt.id} className="p-4 flex items-center justify-between">
                   <div>
                     <div className="flex items-center space-x-2">

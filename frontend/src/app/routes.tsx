@@ -67,6 +67,7 @@ export const AppRoutes: React.FC = () => {
       <Route path="/verifier" element={<VerificationQueue />} />
       <Route path="/verifier/queue" element={<VerificationQueue />} />
       <Route path="/verifier/history" element={<VerificationQueue />} />
+      <Route path="/verifier/records" element={<VerificationQueue />} />
 
       {/* Insurer Routes */}
       <Route path="/insurer" element={<InsurerEventQueue />} />

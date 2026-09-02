@@ -65,11 +65,11 @@ export const PortalSidebar: React.FC = () => {
     ],
     CLINICAL_VERIFIER: [
       { label: 'Verification Queue', path: '/verifier/queue', icon: <ListFilter className="w-4 h-4" /> },
-      { label: 'Attestation Records', path: '/verifier/history', icon: <CheckCircle className="w-4 h-4" /> },
+      { label: 'Attestation Records', path: '/verifier/records', icon: <CheckCircle className="w-4 h-4" /> },
     ],
     FIELD_VERIFIER: [
-      { label: 'Bedside Verification', path: '/verifier/queue', icon: <ListFilter className="w-4 h-4" /> },
-      { label: 'Field Logs', path: '/verifier/history', icon: <CheckCircle className="w-4 h-4" /> },
+      { label: 'Verification Queue', path: '/verifier/queue', icon: <ListFilter className="w-4 h-4" /> },
+      { label: 'Attestation Records', path: '/verifier/records', icon: <CheckCircle className="w-4 h-4" /> },
     ],
     INSURER: [
       { label: 'Insurer Dashboard', path: '/insurer', icon: <BarChart className="w-4 h-4" /> },

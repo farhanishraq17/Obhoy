@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { PageContainer } from '../../components/layout/PageContainer';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -25,6 +25,9 @@ type LoginTab = 'POLICYHOLDER' | 'PROVIDER' | 'VERIFIER' | 'INSURER' | 'REGULATO
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefill = (location.state as any)?.prefillHolder || '';
+
   const {
     registeredUsers,
     loginByHolderNumber,
@@ -37,11 +40,18 @@ export const Login: React.FC = () => {
   const [activeTab, setActiveTab] = useState<LoginTab>('POLICYHOLDER');
 
   // Input States
-  const [holderInput, setHolderInput] = useState('');
+  const [holderInput, setHolderInput] = useState(prefill);
   const [providerInput, setProviderInput] = useState('');
   const [verifierInput, setVerifierInput] = useState('');
   const [insurerInput, setInsurerInput] = useState('');
   const [regulatorInput, setRegulatorInput] = useState('');
+
+  useEffect(() => {
+    if (prefill) {
+      setHolderInput(prefill);
+      setActiveTab('POLICYHOLDER');
+    }
+  }, [prefill]);
 
   // Status & Error States
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
