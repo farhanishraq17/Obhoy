@@ -1,0 +1,48 @@
+import { UserProfile } from '../types/actor';
+
+export const MOCK_USERS: UserProfile[] = [
+  {
+    id: 'USR-RAHIM-1001',
+    nid: '19922691458000312',
+    name: 'Rahim Uddin',
+    phone: '+8801711223344',
+    mfi: 'ABC Microfinance',
+    group: 'Mirpur Group 12',
+    district: 'Dhaka',
+    upazila: 'Mirpur',
+    nidCommitment: '0x8a91c4b7e2d09f31a48c62b9',
+    subjectReference: 'SUBJ-••••91A2',
+    policyId: 'POL-1001',
+    coverageStatus: 'ACTIVE',
+  },
+  {
+    id: 'USR-FATEMA-1002',
+    nid: '19853381940001884',
+    name: 'Fatema Begum',
+    phone: '+8801822334455',
+    mfi: 'BRAC Microfinance',
+    group: 'Savar Group 08',
+    district: 'Dhaka',
+    upazila: 'Savar',
+    nidCommitment: '0x3f7b92e1a4c80d12e95a71c8',
+    subjectReference: 'SUBJ-••••3F7B',
+    policyId: 'POL-1002',
+    coverageStatus: 'ACTIVE',
+  },
+  {
+    id: 'USR-KARIM-1003',
+    nid: '19794420193005912',
+    name: 'Karim Ahmed',
+    phone: '+8801933445566',
+    mfi: 'ASA Microfinance',
+    group: 'Dhamrai Group 04',
+    district: 'Dhaka',
+    upazila: 'Dhamrai',
+    nidCommitment: '0x9c1d4e7f0b2a8c3d5e1f6a4b',
+    subjectReference: 'SUBJ-••••9C1D',
+    policyId: 'POL-1003',
+    coverageStatus: 'ACTIVE',
+  },
+];
+
+export const PRIMARY_USER = MOCK_USERS[0];

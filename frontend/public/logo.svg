@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" fill="none">
+  <rect width="48" height="48" x="6" y="6" rx="12" fill="#0F172A" stroke="#0D9488" stroke-width="2"/>
+  <path d="M30 18L44 25V35C44 44.39 37.6 53.06 29 55C20.4 53.06 14 44.39 14 35V25L28 18Z" stroke="#14B8A6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M23 35L27 39L35 31" stroke="#2DD4BF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="68" y="38" font-family="Inter, sans-serif" font-size="28" font-weight="800" fill="#F8FAFC" letter-spacing="1">OBHOY</text>
+  <text x="175" y="24" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#0D9488" letter-spacing="1">PROTOCOL</text>
+</svg>
