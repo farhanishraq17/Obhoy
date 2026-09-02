@@ -5,51 +5,106 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { ShieldCheck, ArrowRight, LogIn, CheckCircle2, Lock, Scale, BarChart3, AlertTriangle, Cpu } from 'lucide-react';
+import { HowItWorksSection } from '../../components/home/HowItWorksSection';
 
 export const Home: React.FC = () => {
+  React.useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash === '#how-it-works') {
+        const el = document.getElementById('how-it-works');
+        if (el) {
+          setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 60);
+        }
+      } else if (hash === '#hero') {
+        const el = document.getElementById('hero');
+        if (el) {
+          setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 60);
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+    };
+
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  const scrollToHowItWorks = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const el = document.getElementById('how-it-works');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+      window.history.pushState(null, '', '#how-it-works');
+    }
+  };
+
   return (
     <PageContainer isPublic>
-      <div className="space-y-16 py-8">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden text-center space-y-8 py-12">
-          <div className="absolute inset-0 -z-10 flex items-center justify-center">
+      <div className="space-y-16 py-6 sm:py-8">
+        {/* Hero Section - 2-Column Left-Aligned */}
+        <section id="hero" className="relative overflow-hidden py-6 sm:py-10 scroll-mt-24">
+          <div className="absolute inset-0 -z-10 flex items-center justify-start">
             <div className="w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-3xl"></div>
           </div>
 
-          <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-700 text-xs font-mono font-semibold shadow-xs">
-            <Cpu className="w-4 h-4 text-teal-600" />
-            <span>BCOLBD 2026 Claims-Integrity Network</span>
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            {/* Left Column: Left-aligned Text & CTAs */}
+            <div className="lg:col-span-7 text-left space-y-6">
+              <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-700 text-xs font-mono font-semibold shadow-xs">
+                <Cpu className="w-4 h-4 text-teal-600" />
+                <span>BCOLBD 2026 Claims-Integrity Network</span>
+              </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight max-w-4xl mx-auto">
-            Insurance You Can <span className="bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 bg-clip-text text-transparent">Verify</span>.
-          </h1>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                Insurance You Can{' '}
+                <span className="bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+                  Verify
+                </span>.
+              </h1>
 
-          <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto font-sans leading-relaxed">
-            Obhoy is a permissioned claims-integrity network where no single insurer, provider, or intermediary holds the complete record. Multi-class attestations, single-use event assets, and public audit anchoring restore trust to micro-insurance markets.
-          </p>
+              <p className="text-base sm:text-lg text-slate-600 font-sans leading-relaxed max-w-xl">
+                Obhoy is a permissioned claims-integrity network where no single insurer, provider, or intermediary holds the complete record. Multi-class attestations, single-use event assets, and public audit anchoring restore trust to micro-insurance markets.
+              </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-            <Link to="/login">
-              <Button size="lg" variant="primary" icon={<LogIn className="w-5 h-5" />}>
-                Login to Stakeholder Portal
-              </Button>
-            </Link>
-            <Link to="/how-it-works">
-              <Button size="lg" variant="glass" icon={<ArrowRight className="w-5 h-5" />}>
-                How Protocol Works
-              </Button>
-            </Link>
+              <div className="flex flex-wrap items-center gap-4 pt-2">
+                <Link to="/login">
+                  <Button size="lg" variant="primary" icon={<LogIn className="w-5 h-5" />}>
+                    Login to Stakeholder Portal
+                  </Button>
+                </Link>
+                <a href="#how-it-works" onClick={scrollToHowItWorks}>
+                  <Button size="lg" variant="glass" icon={<ArrowRight className="w-5 h-5" />}>
+                    How Protocol Works
+                  </Button>
+                </a>
+              </div>
+            </div>
+
+            {/* Right Column: Hero Illustration */}
+            <div className="lg:col-span-5 flex items-center justify-center lg:justify-end">
+              <div className="relative w-full max-w-md lg:max-w-none">
+                <div className="absolute -inset-4 bg-gradient-to-tr from-teal-500/15 to-emerald-500/10 rounded-3xl blur-2xl -z-10" />
+                <img
+                  src="/images/hero.png"
+                  alt="Obhoy Insurance Verification"
+                  className="w-full h-auto max-h-[440px] object-contain drop-shadow-sm select-none pointer-events-none transition-transform duration-300 hover:scale-[1.02]"
+                />
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* 4 Verification Failures & Protocol Solves */}
+        {/* Why Obhoy? (Solving the 4 Verification Failures) */}
         <section className="space-y-8">
           <div className="text-center space-y-2 max-w-2xl mx-auto">
             <Badge variant="info">Protocol Core</Badge>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Solving the 4 Verification Failures</h2>
-            <p className="text-xs sm:text-sm text-slate-600">
-              Traditional micro-insurance suffers from low claim settlement ratios due to unverified single-party declarations. Obhoy enforces structural verification.
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
+              Why Obhoy?
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              Traditional micro-insurance suffers from low claim settlement ratios due to unverified single-party declarations. Obhoy enforces structural verification across all 4 critical failure modes.
             </p>
           </div>
 
@@ -108,6 +163,8 @@ export const Home: React.FC = () => {
           </div>
         </section>
 
+        {/* How Obhoy Works - 12 Step Flow */}
+        <HowItWorksSection />
       </div>
     </PageContainer>
   );

@@ -39,7 +39,7 @@ export const AppRoutes: React.FC = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Home />} />
-      <Route path="/how-it-works" element={<HowItWorks />} />
+      <Route path="/how-it-works" element={<Navigate to="/#how-it-works" replace />} />
       <Route path="/products" element={<Products />} />
       <Route path="/transparency" element={<TransparencyExplorer />} />
       <Route path="/verify" element={<VerifyRecord />} />

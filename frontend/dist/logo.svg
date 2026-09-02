@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" fill="none">
-  <rect width="48" height="48" x="6" y="6" rx="12" fill="#0F172A" stroke="#0D9488" stroke-width="2"/>
-  <path d="M30 18L44 25V35C44 44.39 37.6 53.06 29 55C20.4 53.06 14 44.39 14 35V25L28 18Z" stroke="#14B8A6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M23 35L27 39L35 31" stroke="#2DD4BF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="68" y="38" font-family="Inter, sans-serif" font-size="28" font-weight="800" fill="#F8FAFC" letter-spacing="1">OBHOY</text>
-  <text x="175" y="24" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#0D9488" letter-spacing="1">PROTOCOL</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 62" fill="none">
+  <path d="M28 3L48 9V27C48 40.5 39.5 52.8 28 57C16.5 52.8 8 40.5 8 27V9L28 3Z" fill="#062341" stroke="#0D9488" stroke-width="3.2" stroke-linejoin="round"/>
+  <circle cx="28" cy="20" r="4.5" fill="#2DD4BF"/>
+  <path d="M28 27C24.5 27 21 29.5 21 33.5C21 38 28 43.5 28 43.5C28 43.5 35 38 35 33.5C35 29.5 31.5 27 28 27Z" fill="#2DD4BF"/>
+  <text x="64" y="28" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="900" fill="#062341" letter-spacing="-0.5">OBHOY</text>
+  <text x="64" y="44" font-family="Inter, system-ui, sans-serif" font-size="10.5" font-weight="600" fill="#0D9488">Secure. Private. Always with you.</text>
 </svg>
