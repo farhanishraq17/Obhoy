@@ -11,9 +11,10 @@ interface AuthState {
   currentUser: UserProfile;
   currentProvider: ProviderEntity;
   currentInsurer: InsurerEntity;
-  login: (role: UserRole) => void;
+  login: (role: UserRole, user?: UserProfile) => void;
   logout: () => void;
   setRole: (role: UserRole) => void;
+  setUser: (user: UserProfile) => void;
   setProvider: (providerId: string) => void;
   setInsurer: (insurerId: string) => void;
 }
@@ -25,9 +26,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   currentProvider: MOCK_PROVIDERS[0],
   currentInsurer: MOCK_INSURERS[0],
 
-  login: (role) => {
+  login: (role, user) => {
     setActiveMsp(ROLE_TO_MSP[role] || 'AcademicMSP');
-    set({ isAuthenticated: true, currentRole: role });
+    set({
+      isAuthenticated: true,
+      currentRole: role,
+      ...(user ? { currentUser: user } : {}),
+    });
   },
   logout: () => {
     setActiveMsp('AcademicMSP');
@@ -38,6 +43,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     setActiveMsp(ROLE_TO_MSP[role] || 'AcademicMSP');
     set({ currentRole: role });
   },
+  setUser: (user) => set({ currentUser: user }),
   setProvider: (providerId) =>
     set({
       currentProvider: MOCK_PROVIDERS.find((p) => p.id === providerId) || MOCK_PROVIDERS[0],
