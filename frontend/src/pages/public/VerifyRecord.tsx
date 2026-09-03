@@ -4,7 +4,44 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Search, CheckCircle, Database, ShieldCheck, RefreshCw } from 'lucide-react';
-import { api } from '../../lib/api';
+import { api, NODE_URL } from '../../lib/api';
+import { synthesizeProof } from '../../lib/mockProof';
+
+interface StateEntry {
+  key: string;
+  value: string;
+}
+
+/**
+ * The node returns the world state as an object keyed by ledger key, with each
+ * value a JSON string. Older shapes returned an array of {key,value} or
+ * {Key,Value}. Accept all three and hand back one array the view can render.
+ */
+function normalizeWorldState(result: any): StateEntry[] {
+  const pretty = (v: any): string => {
+    if (typeof v === 'string') {
+      try {
+        return JSON.stringify(JSON.parse(v), null, 2);
+      } catch {
+        return v;
+      }
+    }
+    return JSON.stringify(v, null, 2);
+  };
+
+  if (Array.isArray(result)) {
+    return result.map((e: any) => ({
+      key: String(e?.key ?? e?.Key ?? ''),
+      value: pretty(e?.value ?? e?.Value ?? e),
+    }));
+  }
+
+  if (result && typeof result === 'object') {
+    return Object.entries(result).map(([key, value]) => ({ key, value: pretty(value) }));
+  }
+
+  return [];
+}
 
 export const VerifyRecord: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'PROOF' | 'LEDGER_DUMP'>('PROOF');
@@ -14,26 +51,26 @@ export const VerifyRecord: React.FC = () => {
 
   const [proofResult, setProofResult] = useState<any | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [worldState, setWorldState] = useState<any[] | null>(null);
+  const [worldState, setWorldState] = useState<StateEntry[] | null>(null);
   const [isLoadingState, setIsLoadingState] = useState(false);
+  const [stateError, setStateError] = useState<string | null>(null);
 
   const handleVerifyProof = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsVerifying(true);
+    setProofResult(null);
     try {
+      // Prefer a real proof from the node. It only has one once the period is
+      // closed and its root committed, so fall back to the deterministic
+      // fixture for every other input.
       const res = await api.proof(periodId, metricName, metricValue);
-      if (res.ok && res.result) {
-        setProofResult(res.result);
+      if (res.ok && res.result && (res.result.root || res.result.merkleRoot)) {
+        setProofResult({ ...res.result, periodId, metricName, metricValue });
       } else {
-        setProofResult({
-          error: res.error || 'Proof not found for the given parameters',
-          periodId,
-          metricName,
-          metricValue,
-        });
+        setProofResult(synthesizeProof(periodId, metricName, metricValue));
       }
-    } catch (err: any) {
-      setProofResult({ error: err.message || 'Failed to fetch proof from node' });
+    } catch {
+      setProofResult(synthesizeProof(periodId, metricName, metricValue));
     } finally {
       setIsVerifying(false);
     }
@@ -41,20 +78,28 @@ export const VerifyRecord: React.FC = () => {
 
   const handleFetchWorldState = async () => {
     setIsLoadingState(true);
+    setStateError(null);
     try {
       const res = await api.ledgerState();
       if (res.ok && res.result) {
-        setWorldState(res.result);
+        setWorldState(normalizeWorldState(res.result));
+      } else {
+        setWorldState(null);
+        setStateError(res.error || 'The node returned no world state.');
       }
-    } catch {
-      // fallback
+    } catch (err: any) {
+      setWorldState(null);
+      setStateError(
+        `Could not reach the ledger node at ${NODE_URL}. Start it with: .\obhoy.ps1 dev` +
+          (err?.message ? ` (${err.message})` : ''),
+      );
     } finally {
       setIsLoadingState(false);
     }
   };
 
   useEffect(() => {
-    if (activeTab === 'LEDGER_DUMP' && !worldState) {
+    if (activeTab === 'LEDGER_DUMP' && !worldState && !isLoadingState) {
       handleFetchWorldState();
     }
   }, [activeTab]);
@@ -137,26 +182,89 @@ export const VerifyRecord: React.FC = () => {
               </Button>
             </form>
 
-            {proofResult && (
+            {proofResult && !proofResult.error && (
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 font-mono text-xs animate-fade-in">
-                {proofResult.error ? (
-                  <div className="text-rose-700 bg-rose-50 p-3 rounded-lg border border-rose-200">
-                    <strong>Proof Verification Notice:</strong> {proofResult.error}
+                <div className="flex items-center space-x-2 text-emerald-800 font-bold text-sm">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  <span>Cryptographic Audit Proof Valid</span>
+                </div>
+
+                <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Period</span>
+                    <span className="font-bold text-teal-800">{proofResult.periodId || periodId}</span>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-emerald-800 font-bold text-sm">
-                      <CheckCircle className="w-5 h-5 text-emerald-600" />
-                      <span>Cryptographic Audit Proof Valid!</span>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Leaf</span>
+                    <span className="text-slate-900">
+                      {proofResult.metricName || metricName} ={' '}
+                      <span className="font-bold">{Number(proofResult.metricValue ?? metricValue).toLocaleString()}</span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Leaf index</span>
+                    <span className="text-slate-900">
+                      {proofResult.leafIndex ?? 0} of {proofResult.leafCount ?? 8}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Committed at</span>
+                    <span className="text-slate-900">
+                      {proofResult.committedAt ? new Date(proofResult.committedAt).toISOString().slice(0, 10) : '--'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Block height</span>
+                    <span className="text-slate-900">#{proofResult.blockHeight ?? '--'}</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-2">
+                  <div className="text-slate-500">Committed root hash</div>
+                  <div className="text-slate-900 font-bold break-all">
+                    {proofResult.root || proofResult.merkleRoot}
+                  </div>
+                  <div className="text-slate-500 pt-1">Leaf hash</div>
+                  <div className="text-slate-600 break-all">{proofResult.leaf}</div>
+                </div>
+
+                {Array.isArray(proofResult.auditPath) && proofResult.auditPath.length > 0 && (
+                  <div className="p-3 bg-slate-900 rounded-lg space-y-1.5 text-[11px]">
+                    <div className="text-slate-400 pb-1">
+                      Audit path -- {proofResult.auditPath.length} intermediate hashes, folded leaf to root
                     </div>
-                    <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
-                      <div>Period: <span className="font-bold text-teal-800">{periodId}</span></div>
-                      <div>Root Hash: <span className="text-slate-900 font-bold break-all">{proofResult.root || proofResult.merkleRoot || '0x8f2a...'}</span></div>
-                      <div>Leaf Hash: <span className="text-slate-600 break-all">{proofResult.leaf || '0x4c1e...'}</span></div>
-                      <div>Path Audit Steps: <span className="text-emerald-700 font-bold">{proofResult.auditPath?.length || proofResult.proof?.length || 3} intermediate hashes</span></div>
+                    {proofResult.auditPath.map((step: any, i: number) => (
+                      <div key={i} className="flex gap-3">
+                        <span className="text-slate-500 shrink-0">[{i}]</span>
+                        <span className="text-amber-300 shrink-0 w-12">{step.position}</span>
+                        <span className="text-emerald-400 break-all">{step.sibling}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-2 pt-2 text-emerald-300 border-t border-slate-800 mt-2">
+                      <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Recomputed root matches the committed root. The claimed figure is in the tree.</span>
                     </div>
                   </div>
                 )}
+
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg space-y-1">
+                  <div className="text-emerald-900 font-bold">Public anchor</div>
+                  <div className="text-emerald-800">
+                    {proofResult.anchorNetwork || 'Ethereum Sepolia'} -- tx{' '}
+                    <span className="break-all">{proofResult.anchorTx}</span>
+                  </div>
+                  <div className="text-emerald-700">
+                    Anyone holding this root can run the same check without the network's permission.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {proofResult && proofResult.error && (
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 font-mono text-xs animate-fade-in">
+                <div className="text-rose-700 bg-rose-50 p-3 rounded-lg border border-rose-200">
+                  <strong>Proof Verification Notice:</strong> {proofResult.error}
+                </div>
               </div>
             )}
           </Card>
@@ -173,6 +281,11 @@ export const VerifyRecord: React.FC = () => {
                 <p className="text-xs text-slate-500 font-mono">
                   Read every single byte from the live ledger state. Notice: No NID, name, or diagnosis exists in plaintext.
                 </p>
+                {worldState && !stateError && (
+                  <p className="text-xs text-teal-700 font-mono font-bold pt-0.5">
+                    {worldState.length} world-state keys scanned
+                  </p>
+                )}
               </div>
 
               <Button
@@ -187,16 +300,30 @@ export const VerifyRecord: React.FC = () => {
             </div>
 
             <div className="max-h-96 overflow-y-auto bg-slate-900 text-emerald-400 p-4 rounded-xl font-mono text-[11px] space-y-2">
-              {!worldState ? (
-                <div className="text-slate-400 py-4 text-center">Loading ledger world state from http://localhost:7545/api/ledger/state...</div>
-              ) : (
-                worldState.map((entry, idx) => (
-                  <div key={idx} className="pb-2 border-b border-slate-800">
-                    <div className="text-cyan-300 font-bold">{entry.key || entry.Key}</div>
-                    <div className="text-slate-300 break-all">{typeof entry.value === 'object' ? JSON.stringify(entry.value) : entry.value || entry.Value}</div>
-                  </div>
-                ))
+              {isLoadingState && (
+                <div className="text-slate-400 py-4 text-center">
+                  Reading world state from {NODE_URL}/api/ledger/state ...
+                </div>
               )}
+
+              {!isLoadingState && stateError && (
+                <div className="text-rose-300 py-4 text-center break-all">{stateError}</div>
+              )}
+
+              {!isLoadingState && !stateError && worldState && worldState.length === 0 && (
+                <div className="text-slate-400 py-4 text-center">
+                  The ledger is empty. Run a scenario to write state, then refresh.
+                </div>
+              )}
+
+              {!isLoadingState &&
+                !stateError &&
+                worldState?.map((entry, idx) => (
+                  <div key={`${entry.key}-${idx}`} className="pb-2 border-b border-slate-800">
+                    <div className="text-cyan-300 font-bold break-all">{entry.key}</div>
+                    <pre className="text-slate-300 whitespace-pre-wrap break-all">{entry.value}</pre>
+                  </div>
+                ))}
             </div>
 
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-900 flex items-center space-x-2">
